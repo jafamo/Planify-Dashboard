@@ -58,8 +58,7 @@ class MainActivity : ComponentActivity() {
             onSearch = viewModel::searchLocation,
             onSelectLocation = viewModel::selectLocation,
             onSchedule = viewModel::setSchedule,
-            onBrightness = viewModel::setBrightness,
-            onLogout = viewModel::logout
+            onBrightness = viewModel::setBrightness
         )
 
         setContent {
@@ -67,7 +66,7 @@ class MainActivity : ComponentActivity() {
             // Se diseña en píxeles nativos del panel (1920×1200): 1 dp = 1 sp = 1 px.
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 1f)) {
                 ProvideIconClock {
-                    DashboardApp(state, actions, viewModel::login, viewModel::loadWeek, viewModel::syncAll, settings, viewModel::peek)
+                    DashboardApp(state, actions, viewModel::syncAll, settings, viewModel::peek)
                 }
             }
         }

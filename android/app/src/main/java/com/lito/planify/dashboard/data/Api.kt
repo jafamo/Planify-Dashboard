@@ -1,39 +1,21 @@
 package com.lito.planify.dashboard.data
 
-import com.lito.planify.dashboard.BuildConfig
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.Streaming
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
-/** Planify (solo lectura: autenticación y listados del dashboard) y Open-Meteo. */
+/** Calendarios iCal (solo lectura) y Open-Meteo. */
 interface Api {
-    @POST("user/auth")
-    suspend fun auth(@Body request: AuthRequest): Response<UserResponse>
-
-    /**
-     * `start_date`/`end_date`: hora local expresada como segundos epoch en UTC, igual que la app. Sin `end_date`
-     * (null) no hay límite: todos los eventos desde `start_date`.
-     */
-    @GET("event")
-    suspend fun events(
-        @Header("Authorization") auth: String,
-        @Query("start_date") start: Long,
-        @Query("end_date") end: Long?,
-        @Query("routine") routine: Boolean,
-        @Query("timezone") timezone: String,
-        @Query("dashboard") dashboard: Boolean = true
-    ): Response<List<Event>>
-
-    @GET("task")
-    suspend fun tasks(@Header("Authorization") auth: String, @Query("dashboard") dashboard: Boolean = true): Response<List<Task>>
+    /** La dirección secreta iCal de un calendario de Google, entera: se lee a trozos (IcsParser). */
+    @Streaming
+    @GET
+    suspend fun calendar(@Url url: String): Response<ResponseBody>
 
     @GET
     suspend fun forecast(@Url url: String): Response<Forecast>
@@ -48,7 +30,7 @@ interface Api {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
             Retrofit.Builder()
-                .baseUrl(BuildConfig.BASE_URL)
+                .baseUrl("https://api.open-meteo.com/") // Todas las peticiones llevan su URL completa
                 .client(http)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()

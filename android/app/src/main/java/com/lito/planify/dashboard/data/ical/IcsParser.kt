@@ -5,6 +5,7 @@ import biweekly.ICalendar
 import biweekly.component.VEvent
 import biweekly.property.ICalProperty
 import biweekly.util.ICalDate
+import com.lito.planify.dashboard.data.SQL_DATE_TIME
 import java.io.BufferedReader
 import java.io.Reader
 import java.time.LocalDate
@@ -15,8 +16,15 @@ import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.TimeZone
 
-/** Una aparición de un evento del iCal, en la hora local del marco. Los de todo el día, una por día y a las 00:00. */
-data class IcsOccurrence(val uid: String, val title: String, val start: LocalDateTime, val allDay: Boolean)
+/**
+ * Una aparición de un evento del iCal, en la hora local del marco. Los de todo el día, una por día y a las 00:00.
+ * El inicio se guarda como texto (`date_at`, como Event) porque va a la caché en disco con Gson.
+ */
+data class IcsOccurrence(val uid: String, val title: String, val date_at: String, val allDay: Boolean) {
+    constructor(uid: String, title: String, start: LocalDateTime, allDay: Boolean) : this(uid, title, start.format(SQL_DATE_TIME), allDay)
+
+    val start: LocalDateTime get() = LocalDateTime.parse(date_at, SQL_DATE_TIME)
+}
 
 /**
  * Lee un calendario iCal (la «dirección secreta» de Google Calendar) y devuelve las apariciones de sus eventos entre
@@ -41,7 +49,7 @@ object IcsParser {
             val replaced = if (event.recurrenceId == null) overrides[event.uid.value].orEmpty() else emptySet()
             expand(calendar, event, replaced, from, to, zone, occurrences)
         }
-        return occurrences.sortedBy { it.start }
+        return occurrences.sortedBy { it.date_at }
     }
 
     private fun expand(

@@ -3,47 +3,44 @@ package com.lito.planify.dashboard.data
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-// --- Planify (solo lo que lee el dashboard) ---
+// --- Calendarios (iCal de Google Calendar) ---
 
-data class AuthRequest(val email: String, val password: String)
-
-data class UserResponse(val id: Int, val name: String, val email: String, val token: String?)
+/**
+ * Un calendario de Google, por su dirección secreta iCal. [color] en `#RRGGBB`. Los de [routines] salen en las
+ * rutinas (Rutinas de hoy y la caja de rutinas de Calendario) en lugar de en los eventos.
+ */
+data class CalendarSource(val name: String, val url: String, val color: String, val routines: Boolean = false)
 
 data class Person(val id: Int, val name: String, val color: String)
 
-/** Evento o sesión de rutina (`routine_id` no nulo). `date_at` es hora local flotante. */
+/**
+ * Evento o aparición de una rutina. `date_at` es hora local; los de todo el día van a las 00:00 con [all_day], uno
+ * por cada día que ocupan. Los calendarios iCal no traen personas: [persons] queda vacío.
+ */
 data class Event(
-    val id: Int,
+    val id: String,
     val calendar_id: Int,
     val calendar_name: String?,
     val calendar_color: String?,
     val title: String,
     val date_at: String,
-    val routine_id: Int? = null,
+    val all_day: Boolean = false,
     val persons: List<Person>? = null
 ) {
     val at: LocalDateTime get() = LocalDateTime.parse(date_at, SQL_DATE_TIME)
+
+    /** Ya ha pasado: los de todo el día, al acabar su día. */
+    fun isPast(now: LocalDateTime): Boolean = if (all_day) at.toLocalDate() < now.toLocalDate() else at.isBefore(now)
 }
 
-data class Task(
-    val id: Int,
-    val task_list_id: Int,
-    val task_list_name: String?,
-    val task_list_color: String?,
-    val title: String,
-    val order: Int,
-    val completed_at: String?
-)
-
-/** Contenido de Hoy (ver ContentRepository). */
+/** Contenido de Hoy y de Calendario (ver EventsRepository). */
 data class Content(
     val events: List<Event>,
-    val sessions: List<Event>,
-    val tasks: List<Task>
+    val sessions: List<Event>
 )
 
-/** Una semana del calendario (lunes a domingo), descargada al navegar hasta ella. */
-data class Week(val events: List<Event>, val sessions: List<Event>)
+/** Estado de la descarga de un calendario, para Ajustes. */
+data class CalendarStatus(val source: CalendarSource, val fetchedAt: Long?, val failing: Boolean)
 
 val SQL_DATE_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 

@@ -2,12 +2,7 @@ package com.lito.planify.dashboard.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,11 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.lito.planify.dashboard.R
@@ -44,53 +35,41 @@ import com.lito.planify.dashboard.ui.theme.Palette
 import com.lito.planify.dashboard.ui.theme.Type
 
 /**
- * Inicio de sesión con la cuenta de Planify. El dashboard solo lee: nunca modifica contenido.
- * Sin Internet no tiene sentido el formulario: se espera a la red, con acceso a los ajustes de Wi-Fi.
+ * Sin calendarios configurados. Las direcciones secretas iCal son largas para teclearlas en el marco, así que se
+ * añaden desde el ordenador (scripts/calendars.sh). Sin Internet, primero se espera a la red, con acceso al Wi-Fi.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun LoginScreen(state: UiState, onLogin: (String, String) -> Unit, onWifi: () -> Unit) {
+fun SetupScreen(state: UiState, onWifi: () -> Unit) {
     if (!state.connected) {
         WaitingForNetwork(onWifi)
         return
     }
-    var email by remember { mutableStateOf(state.email.orEmpty()) }
-    var password by remember { mutableStateOf("") }
-    val canSubmit = email.isNotBlank() && password.isNotEmpty() && !state.loggingIn
-
-    val focusManager = LocalFocusManager.current
-    // Con el teclado abierto el formulario sube por encima de él y el icono se oculta para que quepa entero.
-    val keyboardOpen = WindowInsets.isImeVisible
-    Box(
-        Modifier
-            .fillMaxSize()
-            .imePadding()
-            // Sin barra de navegación no hay "atrás": tocar fuera de los campos cierra el teclado.
-            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(Modifier.width(760.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            if (!keyboardOpen) {
-                Image(
-                    painterResource(R.drawable.planify_icon),
-                    contentDescription = "Planify",
-                    modifier = Modifier.size(144.dp).align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
-                )
-            }
-            Text(
-                "Inicia sesión",
-                style = Type.Huge.copy(fontSize = Type.Title.fontSize * if (keyboardOpen) 1.4f else 2f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = if (keyboardOpen) 4.dp else 24.dp)
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(Modifier.width(1000.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            Image(
+                painterResource(R.drawable.planify_icon),
+                contentDescription = "Planify",
+                modifier = Modifier.size(144.dp).align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
             )
-            Field(email, { email = it }, "Email", Modifier.fillMaxWidth(), keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
-            Field(password, { password = it }, "Contraseña", Modifier.fillMaxWidth(), password = true) {
-                if (canSubmit) onLogin(email, password)
-            }
-            state.loginError?.let { Text(it, style = Type.Body.copy(color = Palette.Accent)) }
-            PillButton(if (state.loggingIn) "Entrando…" else "Entrar", Modifier.fillMaxWidth(), primary = true, enabled = canSubmit) {
-                onLogin(email, password)
-            }
+            Text(
+                "Añade tus calendarios",
+                style = Type.Huge.copy(fontSize = Type.Title.fontSize * 2f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+            )
+            Text(
+                "En calendar.google.com, desde un ordenador: Configuración → el calendario → Integrar el calendario → " +
+                    "Dirección secreta en formato iCal.",
+                style = Type.Body.copy(color = Palette.InkSoft),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                "Apúntala en scripts/calendars.local y lanza scripts/calendars.sh con el marco conectado.",
+                style = Type.Body.copy(color = Palette.InkSoft),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

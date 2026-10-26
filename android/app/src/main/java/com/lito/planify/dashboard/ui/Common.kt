@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.lito.planify.dashboard.data.Event
 import com.lito.planify.dashboard.data.Person
 import com.lito.planify.dashboard.ui.theme.Palette
 import com.lito.planify.dashboard.ui.theme.Type
@@ -73,6 +74,16 @@ fun LocalDate.shortLabel() =
  * Tiempo que falta, como en el widget de la app (`DateTimeUtils.getRelativeTime`): "AHORA", "25M", "2H 30M"
  * para hoy; días y horas hasta pasado mañana ("1D 3H"); después, días naturales ("5D") o meses ("1M 5D").
  */
+/** La hora del evento, o "Todo el día". */
+fun Event.timeLabel(): String = if (all_day) "Todo el día" else at.format(HourMinute)
+
+/** Lo que falta para el evento; los de todo el día, en días ("HOY", "MAÑANA", "3D"). */
+fun Event.badge(now: LocalDateTime): String = if (!all_day) relativeBadge(now, at) else when (java.time.temporal.ChronoUnit.DAYS.between(now.toLocalDate(), at.toLocalDate())) {
+    0L -> "HOY"
+    1L -> "MAÑANA"
+    else -> relativeBadge(now.toLocalDate().atStartOfDay(), at)
+}
+
 fun relativeBadge(now: LocalDateTime, at: LocalDateTime): String {
     val minutes = kotlin.math.abs(java.time.Duration.between(now, at).toMinutes())
     if (minutes < 1) return "AHORA"

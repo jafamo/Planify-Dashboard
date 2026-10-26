@@ -3,6 +3,7 @@ package com.lito.planify.dashboard.data
 import android.content.Context
 import androidx.core.content.edit
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 /** Horario de pantalla en minutos desde medianoche, por tipo de día. */
 data class Schedule(
@@ -18,18 +19,19 @@ data class Schedule(
     val screenOff: Boolean = false
 )
 
-/** Sesión y ajustes del dispositivo (SharedPreferences). Los datos descargados van en DiskCache. */
+/**
+ * Calendarios y ajustes del dispositivo (SharedPreferences). Los datos descargados van en DiskCache.
+ * Los calendarios los escribe `scripts/calendars.sh` por ADB (las URLs son largas para teclearlas en el marco).
+ */
 class Store(context: Context) {
     private val prefs = context.getSharedPreferences("dashboard", Context.MODE_PRIVATE)
     private val gson = Gson()
 
-    var token: String?
-        get() = prefs.getString("token", null)
-        set(value) = prefs.edit { putString("token", value) }
-
-    var email: String?
-        get() = prefs.getString("email", null)
-        set(value) = prefs.edit { putString("email", value) }
+    val calendars: List<CalendarSource>
+        get() = prefs.getString("calendars", null)
+            ?.let { runCatching { gson.fromJson<List<CalendarSource>>(it, CALENDARS) }.getOrNull() }
+            .orEmpty()
+            .filter { it.url.isNotBlank() }
 
     var location: Location?
         get() = read("location")
@@ -49,8 +51,6 @@ class Store(context: Context) {
         get() = prefs.getLong("last_valid_time", 0L)
         set(value) = prefs.edit { putLong("last_valid_time", value) }
 
-    fun logout() = prefs.edit { remove("token") }
-
     init {
         // La caché de datos estaba aquí antes de pasar a disco (DiskCache): se descarta, se vuelve a descargar.
         if (prefs.contains("content") || prefs.contains("forecast") || prefs.contains("weeks")) {
@@ -60,10 +60,19 @@ class Store(context: Context) {
                 remove("weeks")
             }
         }
+        // La sesión de Planify, de antes de leer los calendarios de Google.
+        if (prefs.contains("token")) prefs.edit {
+            remove("token")
+            remove("email")
+        }
     }
 
     private inline fun <reified T> read(key: String): T? =
         prefs.getString(key, null)?.let { runCatching { gson.fromJson(it, T::class.java) }.getOrNull() }
 
     private fun write(key: String, value: Any?) = prefs.edit { if (value == null) remove(key) else putString(key, gson.toJson(value)) }
+
+    private companion object {
+        val CALENDARS = object : TypeToken<List<CalendarSource>>() {}.type
+    }
 }

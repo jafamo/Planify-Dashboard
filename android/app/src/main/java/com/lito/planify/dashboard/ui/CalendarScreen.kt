@@ -50,21 +50,15 @@ private val GAP = 14.dp
 
 /**
  * Calendario en dos filas, la semana actual y la siguiente, de lunes a domingo. Se desliza en vertical de semana en
- * semana. Cada semana se descarga al mostrarla (y las vecinas, para que el deslizamiento no espere); mientras tanto
- * se usa lo que haya del contenido de Hoy.
+ * semana. Los eventos son los mismos que en Hoy: los calendarios se descargan enteros (EventsRepository).
  */
 @Composable
-fun CalendarScreen(state: UiState, onLoadWeek: (LocalDate) -> Unit) {
+fun CalendarScreen(state: UiState) {
     val today = state.now.toLocalDate()
     val thisMonday = today.with(DayOfWeek.MONDAY)
     val pager = rememberPagerState(initialPage = CURRENT) { WEEKS }
     val scope = rememberCoroutineScope()
     fun mondayOf(page: Int): LocalDate = thisMonday.plusWeeks((page - CURRENT).toLong())
-
-    LaunchedEffect(pager.settledPage) {
-        val monday = mondayOf(pager.settledPage)
-        listOf(monday, monday.plusWeeks(1), monday.plusWeeks(2), monday.minusWeeks(1)).forEach(onLoadWeek)
-    }
 
     BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 36.dp, vertical = 24.dp)) {
         // Dos semanas en pantalla: cada página mide la mitad del alto
@@ -93,9 +87,8 @@ fun CalendarScreen(state: UiState, onLoadWeek: (LocalDate) -> Unit) {
     }
 }
 
-/** Eventos y sesiones de la semana: los descargados para ella o, mientras llegan, los del contenido de Hoy. */
+/** Eventos y sesiones de la semana. */
 private fun weekContent(state: UiState, monday: LocalDate): Pair<List<Event>, List<Event>> {
-    state.weeks[monday]?.let { return it.events to it.sessions }
     val sunday = monday.plusDays(6)
     fun inWeek(event: Event) = event.at.toLocalDate().let { it >= monday && it <= sunday }
     return state.content?.events.orEmpty().filter(::inWeek) to state.content?.sessions.orEmpty().filter(::inWeek)
@@ -149,7 +142,7 @@ private fun DayCard(date: LocalDate, state: UiState, events: List<Event>, sessio
         Box(Modifier.padding(top = 8.dp, bottom = 12.dp)) { Hairline() }
 
         Column(Modifier.weight(1f).fadingScroll(rememberScrollState(), edge = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            events.forEach { WeekEvent(it, past = it.at.isBefore(state.now)) }
+            events.forEach { WeekEvent(it, past = it.isPast(state.now)) }
         }
 
         // Las rutinas del día, en una caja abajo: hora, color de cada persona y nombre, que sigue en la línea de debajo
@@ -165,7 +158,7 @@ private fun DayCard(date: LocalDate, state: UiState, events: List<Event>, sessio
                 sessions.forEach { session ->
                     Text(
                         buildAnnotatedString {
-                            withStyle(SpanStyle(color = Palette.InkMuted)) { append(session.at.format(HourMinute)) }
+                            withStyle(SpanStyle(color = Palette.InkMuted)) { append(session.timeLabel()) }
                             session.persons.orEmpty().forEach { withStyle(SpanStyle(color = parseColor(it.color))) { append(" ●") } }
                             append(" ")
                             append(session.title)
@@ -173,7 +166,7 @@ private fun DayCard(date: LocalDate, state: UiState, events: List<Event>, sessio
                         style = Type.Tiny.copy(color = Palette.Ink),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.alpha(if (session.at.isBefore(state.now)) 0.4f else 1f)
+                        modifier = Modifier.alpha(if (session.isPast(state.now)) 0.4f else 1f)
                     )
                 }
             }
@@ -186,7 +179,7 @@ private fun WeekEvent(event: Event, past: Boolean) {
     Row(Modifier.fillMaxWidth().alpha(if (past) 0.4f else 1f)) {
         Box(Modifier.width(5.dp).height(56.dp).background(parseColor(event.calendar_color), RoundedCornerShape(3.dp)))
         Column(Modifier.padding(start = 10.dp)) {
-            Text(event.at.format(HourMinute), style = Type.Tiny.copy(color = Palette.InkMuted))
+            Text(event.timeLabel(), style = Type.Tiny.copy(color = Palette.InkMuted))
             Text(event.title, style = Type.Small.copy(color = Palette.Ink), maxLines = 3, overflow = TextOverflow.Ellipsis)
             PersonInitials(event.persons, Modifier.padding(top = 4.dp), size = 26)
         }

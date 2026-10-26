@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
@@ -52,14 +51,12 @@ import androidx.compose.ui.unit.sp
 import com.lito.planify.dashboard.UiState
 import com.lito.planify.dashboard.ui.theme.Palette
 import com.lito.planify.dashboard.ui.theme.Type
-import java.time.LocalDate
 import kotlinx.coroutines.delay
 
 enum class Page(val label: String, val icon: ImageVector) {
     Today("Hoy", Icons.Outlined.Home),
     Calendar("Calendario", Icons.Outlined.CalendarMonth),
     Weather("Tiempo", Icons.Outlined.Thermostat),
-    Tasks("Tareas", Icons.Outlined.Checklist),
     Settings("Ajustes", Icons.Outlined.Settings)
 }
 
@@ -80,8 +77,6 @@ private val RAIL_CLOCK_OVERLAP = (-30).dp
 fun DashboardApp(
     state: UiState,
     actions: DashboardActions,
-    onLogin: (String, String) -> Unit,
-    onLoadWeek: (LocalDate) -> Unit,
     onSync: () -> Unit,
     settings: SettingsCallbacks,
     onPeek: () -> Unit
@@ -111,8 +106,8 @@ fun DashboardApp(
                 }
             }
     ) {
-        if (state.token == null) {
-            LoginScreen(state, onLogin, actions.openWifi)
+        if (state.calendars.isEmpty()) {
+            SetupScreen(state, actions.openWifi)
             return@Box
         }
         if (state.night) {
@@ -127,9 +122,8 @@ fun DashboardApp(
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (page) {
                     Page.Today -> TodayScreen(state, lastTouch)
-                    Page.Calendar -> CalendarScreen(state, onLoadWeek)
+                    Page.Calendar -> CalendarScreen(state)
                     Page.Weather -> WeatherScreen(state)
-                    Page.Tasks -> TasksScreen(state)
                     Page.Settings -> SettingsScreen(state, actions, settings)
                 }
             }

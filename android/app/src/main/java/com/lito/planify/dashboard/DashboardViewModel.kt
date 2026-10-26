@@ -7,7 +7,8 @@ import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lito.planify.dashboard.data.Api
-import com.lito.planify.dashboard.data.AuthRequest
+import com.lito.planify.dashboard.data.CalendarSource
+import com.lito.planify.dashboard.data.CalendarStatus
 import com.lito.planify.dashboard.data.Content
 import com.lito.planify.dashboard.data.Forecast
 import com.lito.planify.dashboard.data.GeoResult
@@ -15,11 +16,9 @@ import com.lito.planify.dashboard.data.Location
 import com.lito.planify.dashboard.data.ReferenceClock
 import com.lito.planify.dashboard.data.Schedule
 import com.lito.planify.dashboard.data.Store
-import com.lito.planify.dashboard.data.Week
 import com.lito.planify.dashboard.data.cache.DiskCache
-import com.lito.planify.dashboard.data.isUnauthorized
-import com.lito.planify.dashboard.data.repository.CalendarRepository
-import com.lito.planify.dashboard.data.repository.ContentRepository
+import com.lito.planify.dashboard.data.HttpError
+import com.lito.planify.dashboard.data.repository.EventsRepository
 import com.lito.planify.dashboard.data.repository.WeatherRepository
 import com.lito.planify.dashboard.power.ScreenSchedule
 import kotlinx.coroutines.delay
@@ -32,8 +31,10 @@ import java.io.File
 import java.time.LocalDateTime
 
 data class UiState(
-    val token: String? = null,
-    val email: String? = null,
+    /** Calendarios configurados (scripts/calendars.sh). Sin ninguno se explica cómo añadirlos. */
+    val calendars: List<CalendarSource> = emptyList(),
+    /** Cuándo se descargó cada calendario y si falla, para Ajustes. */
+    val calendarStatus: List<CalendarStatus> = emptyList(),
     val now: LocalDateTime = LocalDateTime.now(),
     /** false mientras el reloj no se haya sincronizado (el RTC vuelve a la fecha de fábrica). */
     val clockValid: Boolean = false,
@@ -44,14 +45,10 @@ data class UiState(
     val brightness: Float? = null,
     /** false si el último intento de sincronizar falló: se muestra lo que hay en caché. */
     val online: Boolean = true,
-    /** Hay una red con salida a Internet (sin ella, el login muestra la espera y "Ir a Ajustes"). */
+    /** Hay una red con salida a Internet (sin ella y sin calendarios, se muestra la espera y "Ir a Ajustes"). */
     val connected: Boolean = false,
     /** Sincronización manual en curso (botón de la barra lateral). */
     val syncing: Boolean = false,
-    /** Semanas del calendario descargadas bajo demanda, por su lunes. */
-    val weeks: Map<LocalDate, Week> = emptyMap(),
-    val loginError: String? = null,
-    val loggingIn: Boolean = false,
     val geoResults: List<GeoResult> = emptyList(),
     val geoSearching: Boolean = false,
     /** Tocar el reloj nocturno enseña el dashboard hasta esta hora. */
@@ -61,7 +58,7 @@ data class UiState(
 ) {
     /** Reloj nocturno: fuera de horario (salvo mientras se mira el dashboard un momento) o pedido con la luna. */
     val night: Boolean
-        get() = clockValid && token != null && (
+        get() = clockValid && calendars.isNotEmpty() && (
             (nightUntil != null && now.isBefore(nightUntil)) ||
                 (ScreenSchedule.isNight(schedule, now) && (peekUntil == null || !now.isBefore(peekUntil)))
             )
@@ -71,21 +68,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val store = Store(application)
     private val api = Api.client
     private val cache = DiskCache(File(application.filesDir, "cache"))
-    private val contentRepository = ContentRepository(api, cache)
+    private val eventsRepository = EventsRepository(api, cache).apply { setSources(store.calendars) }
     private val weatherRepository = WeatherRepository(api, cache)
-    private val calendarRepository = CalendarRepository(api, cache)
     private val clock = ReferenceClock(BuildConfig.BUILD_TIME, { store.lastValidTime }, { store.lastValidTime = it })
 
     private val _state = MutableStateFlow(
         clock.current().let { time ->
             UiState(
-                token = store.token,
-                email = store.email,
+                calendars = store.calendars,
+                calendarStatus = eventsRepository.status.value,
                 now = time.now,
                 clockValid = time.valid,
-                content = contentRepository.content.value?.value,
+                content = eventsRepository.content.value,
                 forecast = weatherRepository.forecast.value?.value,
-                weeks = calendarRepository.weeks.value,
                 location = store.location,
                 schedule = store.schedule,
                 brightness = store.brightness
@@ -104,9 +99,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         // Los repositorios publican la copia en disco y cada descarga buena: la pantalla siempre tiene lo último.
-        viewModelScope.launch { contentRepository.content.collect { c -> _state.update { it.copy(content = c?.value) } } }
+        viewModelScope.launch { eventsRepository.content.collect { c -> _state.update { it.copy(content = c) } } }
+        viewModelScope.launch { eventsRepository.status.collect { s -> _state.update { it.copy(calendarStatus = s) } } }
         viewModelScope.launch { weatherRepository.forecast.collect { f -> _state.update { it.copy(forecast = f?.value) } } }
-        viewModelScope.launch { calendarRepository.weeks.collect { w -> _state.update { it.copy(weeks = w) } } }
         setConnected(connectivity.getNetworkCapabilities(connectivity.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
         connectivity.registerDefaultNetworkCallback(networkCallback)
     }
@@ -127,7 +122,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         while (true) {
             tick()
             if (_state.value.clockValid) {
-                if (contentRepository.isStale()) refreshContent()
+                if (eventsRepository.isStale()) refreshContent()
                 if (weatherRepository.isStale()) refreshWeather()
             }
             delay(60_000 - System.currentTimeMillis() % 60_000 + 50)
@@ -139,7 +134,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         _state.update { it.copy(now = time.now, clockValid = time.valid) }
     }
 
-    /** Fuerza la sincronización (al recuperar la red, tras iniciar sesión...). */
+    /** Fuerza la sincronización (al recuperar la red...). */
     fun refreshNow() {
         viewModelScope.launch {
             tick()
@@ -151,8 +146,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Sin hora válida no se pide nada: las fechas de la petición serían las de fábrica. */
     private suspend fun refreshContent() {
-        val token = _state.value.token ?: return
-        report(contentRepository.refresh(token, LocalDate.now()))
+        val results = eventsRepository.refresh(LocalDate.now())
+        if (results.isNotEmpty()) report(results.firstOrNull { it.isFailure && it.exceptionOrNull() !is HttpError } ?: results.first())
     }
 
     private suspend fun refreshWeather() {
@@ -160,16 +155,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         report(weatherRepository.refresh(location))
     }
 
-    /** Carga la semana del calendario que empieza en [monday] si no está en caché o ha caducado. */
-    fun loadWeek(monday: LocalDate) {
-        val token = _state.value.token ?: return
-        if (!calendarRepository.isStale(monday)) return
-        viewModelScope.launch { report(calendarRepository.refresh(token, monday)) }
-    }
-
     /**
-     * Botón de sincronizar: vuelve a pedir el contenido de Hoy, las semanas del calendario ya cargadas y el
-     * tiempo, aunque no hayan caducado. Dura al menos un segundo para que se vea el giro.
+     * Botón de sincronizar: vuelve a pedir los calendarios y el tiempo, aunque no hayan caducado. Dura al menos un segundo para que se vea el giro.
      */
     fun syncAll() {
         if (_state.value.syncing) return
@@ -179,7 +166,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             tick()
             if (_state.value.clockValid) {
                 refreshContent()
-                _state.value.token?.let { token -> calendarRepository.loaded().forEach { report(calendarRepository.refresh(token, it)) } }
                 refreshWeather()
             }
             delay((1000 - (System.currentTimeMillis() - started)).coerceAtLeast(0))
@@ -187,41 +173,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    /** Estado de la conexión según la última petición. Si falla, la pantalla sigue con la copia en caché. */
+    /**
+     * Estado de la conexión según la última petición. Si falla, la pantalla sigue con la copia en caché. Un servidor
+     * que responde con error (una URL de calendario restablecida en Google) no es falta de conexión: se ve en Ajustes.
+     */
     private fun report(result: Result<*>) {
         val error = result.exceptionOrNull()
-        when {
-            error == null -> _state.update { it.copy(online = true) }
-            error.isUnauthorized -> logout()
-            else -> _state.update { it.copy(online = false) }
-        }
-    }
-
-    fun login(email: String, password: String) {
-        _state.update { it.copy(loggingIn = true, loginError = null) }
-        viewModelScope.launch {
-            try {
-                val response = api.auth(AuthRequest(email.trim(), password))
-                val token = response.body()?.token
-                if (!response.isSuccessful || token == null) {
-                    _state.update { it.copy(loggingIn = false, loginError = "Email o contraseña incorrectos") }
-                    return@launch
-                }
-                store.token = token
-                store.email = email.trim()
-                _state.update { it.copy(token = token, email = email.trim(), loggingIn = false) }
-                refreshNow()
-            } catch (e: Exception) {
-                _state.update { it.copy(loggingIn = false, loginError = "Sin conexión con el servidor") }
-            }
-        }
-    }
-
-    fun logout() {
-        store.logout()
-        contentRepository.clear()
-        calendarRepository.clear()
-        _state.update { it.copy(token = null) }
+        _state.update { it.copy(online = error == null || error is HttpError) }
     }
 
     fun searchLocation(query: String) {

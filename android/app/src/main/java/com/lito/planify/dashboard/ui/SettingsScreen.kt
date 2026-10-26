@@ -75,8 +75,7 @@ class SettingsCallbacks(
     val onSearch: (String) -> Unit,
     val onSelectLocation: (GeoResult) -> Unit,
     val onSchedule: (Schedule) -> Unit,
-    val onBrightness: (Float?) -> Unit,
-    val onLogout: () -> Unit
+    val onBrightness: (Float?) -> Unit
 )
 
 /**
@@ -99,12 +98,12 @@ fun SettingsScreen(state: UiState, actions: DashboardActions, callbacks: Setting
                 Panel(Modifier.fillMaxWidth().weight(1f)) {
                     BrightnessSection(state.brightness, callbacks.onBrightness)
                     Section("Conexión") { WifiCard() }
+                    Section("Calendarios") { CalendarsCard(state) }
                 }
                 Panel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(ButtonGap)) {
                         PillButton("Wi-Fi", Modifier.fillMaxWidth(), background = Control, onClick = actions.openWifi)
                         PillButton("Ajustes de Android", Modifier.fillMaxWidth(), background = Control, onClick = actions.openSettings)
-                        PillButton("Cerrar sesión", Modifier.fillMaxWidth(), background = Control, onClick = callbacks.onLogout)
                         PillButton("Apagar o reiniciar", Modifier.fillMaxWidth(), background = Control, onClick = actions.powerMenu)
                     }
                 }
@@ -265,6 +264,50 @@ private fun LevelSlider(value: Float, enabled: Boolean, modifier: Modifier = Mod
 }
 
 /** Red Wi-Fi conectada, con una barra de calidad según la señal. Se actualiza cada 5 s mientras se ve. */
+/**
+ * Los calendarios configurados (scripts/calendars.sh), cada uno con su color y cuándo se descargó. Si uno falla (por
+ * ejemplo, porque se ha restablecido su dirección secreta en Google), se sigue viendo lo último que se descargó.
+ */
+@Composable
+private fun CalendarsCard(state: UiState) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Control, RoundedCornerShape(24.dp))
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        state.calendarStatus.forEach { status ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(20.dp).background(parseColor(status.source.color), CircleShape))
+                Text(
+                    status.source.name,
+                    style = Type.Body.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 14.dp, end = 10.dp).weight(1f)
+                )
+                val (label, color) = when {
+                    status.failing -> "No responde" to Palette.Accent
+                    status.fetchedAt == null -> "Descargando…" to Palette.InkMuted
+                    else -> fetchedLabel(status.fetchedAt) to Palette.Online
+                }
+                Text(label, style = Type.Small.copy(color = color, fontWeight = FontWeight.SemiBold), maxLines = 1)
+            }
+        }
+    }
+}
+
+/** "Al día" o "Hace 12 min" / "Hace 3 h". */
+private fun fetchedLabel(fetchedAt: Long): String {
+    val minutes = (System.currentTimeMillis() - fetchedAt) / 60_000
+    return when {
+        minutes < 10 -> "Al día"
+        minutes < 120 -> "Hace $minutes min"
+        else -> "Hace ${minutes / 60} h"
+    }
+}
+
 @Composable
 private fun WifiCard() {
     val context = LocalContext.current

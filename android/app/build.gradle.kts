@@ -1,23 +1,7 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
-
-// URL del backend de Planify para cada instalación, sin dejarla en el código. Se busca, por este orden, en
-// android/planify.properties (ver planify.properties.example), en -Pplanify.baseUrl=… y en la variable de entorno
-// PLANIFY_BASE_URL. La release no se compila sin ella; la debug apunta por defecto al backend local del emulador.
-val planify = Properties().apply {
-    rootProject.file("planify.properties").takeIf { it.isFile }?.reader()?.use { load(it) }
-}
-fun planifySetting(name: String, env: String): String? =
-    (planify.getProperty(name) ?: providers.gradleProperty(name).orNull ?: providers.environmentVariable(env).orNull)
-        ?.trim()?.takeIf { it.isNotEmpty() }?.let { if (it.endsWith("/")) it else "$it/" }
-
-val releaseBaseUrl = planifySetting("planify.baseUrl", "PLANIFY_BASE_URL")
-val debugBaseUrl = planifySetting("planify.debugBaseUrl", "PLANIFY_DEBUG_BASE_URL") ?: "http://10.0.2.2:3000/"
-fun cleartext(url: String?) = (url?.startsWith("http://") == true).toString()
 
 android {
     namespace = "com.lito.planify.dashboard"
@@ -38,13 +22,12 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "BASE_URL", "\"${releaseBaseUrl.orEmpty()}\"")
-            manifestPlaceholders["cleartext"] = cleartext(releaseBaseUrl)
+            manifestPlaceholders["cleartext"] = "false"
             signingConfig = signingConfigs.getByName("debug") // Instalación local por ADB, como la app
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
-            manifestPlaceholders["cleartext"] = cleartext(debugBaseUrl)
+            // El calendario de la demo (scripts/demo.sh) se sirve por HTTP desde el PC
+            manifestPlaceholders["cleartext"] = "true"
         }
     }
     compileOptions {
@@ -61,18 +44,6 @@ android {
         }
     }
 }
-
-// Sin URL, la release se para antes de compilar nada (la debug y los tests no la necesitan)
-val checkPlanifyBaseUrl = tasks.register("checkPlanifyBaseUrl") {
-    val url = releaseBaseUrl
-    doLast {
-        if (url == null) throw GradleException(
-            "Falta la URL del backend: copia android/planify.properties.example a android/planify.properties " +
-                "y rellena planify.baseUrl (o usa -Pplanify.baseUrl=… o PLANIFY_BASE_URL)."
-        )
-    }
-}
-tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkPlanifyBaseUrl) }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.19.1")
