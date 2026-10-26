@@ -4,3 +4,5 @@
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
 -dontwarn sun.misc.**
+# biweekly: Jackson (jCal) se excluye en build.gradle.kts.
+-dontwarn com.fasterxml.jackson.**

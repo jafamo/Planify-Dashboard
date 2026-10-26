@@ -89,6 +89,8 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    // iCal de Google Calendar: lectura y repeticiones (RRULE). Jackson solo hace falta para jCal, que no se usa.
+    implementation("net.sf.biweekly:biweekly:0.6.8") { exclude(group = "com.fasterxml.jackson.core") }
 
     testImplementation("junit:junit:4.13.2")
 }
