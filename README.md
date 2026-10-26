@@ -56,7 +56,7 @@ Dos páginas que se deslizan. La primera: el día de hoy por horas, de 00 a 23 c
 </p>
 
 ### Tareas
-Las tareas del grupo de Telegram de la familia, una columna por lista, con quién la apuntó y cuándo. En el grupo, cualquier mensaje es una tarea (`leche #compra` va a la lista Compra) y `-leche`, `/hecho leche` o responder «hecho» a su mensaje la tachan; `/lista` las enseña en el móvil. En el marco, una pulsación larga la tacha y el bot lo cuenta en el grupo. Solo aparece con el bot configurado (`scripts/telegram.sh`).
+Las tareas del grupo de Telegram de la familia, una columna por lista, con quién la apuntó y cuándo. En el grupo, cualquier mensaje es una tarea (`leche #compra` va a la lista Compra) y `-leche`, `/hecho leche` o responder «hecho» a su mensaje la tachan; `/lista` las enseña en el móvil (`/lista lidl`, solo esa lista). En el marco, una pulsación larga la tacha y el bot lo cuenta en el grupo. Solo aparece con el bot configurado (`scripts/telegram.sh`).
 
 ### Ajustes
 Ubicación del tiempo (búsqueda en Open-Meteo), horario de pantalla (entre semana y fin de semana, con el interruptor «Reloj nocturno»: si se desactiva, fuera de horario la pantalla se apaga del todo), **Calendarios** (cada uno con su color y si está al día o no responde, por ejemplo porque se ha restablecido su dirección en Google) y el grupo de Telegram de las tareas, brillo (un deslizador, con el porcentaje en el título, y «A» para el automático del sistema), Conexión (estado del Wi-Fi) y, en su propia caja, Wi-Fi, Ajustes de Android y apagar o reiniciar.

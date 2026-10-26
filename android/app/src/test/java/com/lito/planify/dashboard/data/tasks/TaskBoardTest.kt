@@ -126,9 +126,36 @@ class TaskBoardTest {
     }
 
     @Test
-    fun unknownCommandsAreIgnored() {
+    fun unknownCommandSaysWhichOnesExist() {
         val (state, actions) = run("/foto")
+        assertTrue(state.tasks.isEmpty())
+        assertEquals("No conozco /foto. Usa /lista, /hecho o /ayuda.", (actions.single() as BotAction.Reply).text)
+    }
+
+    @Test
+    fun commandsForAnotherBotAreIgnored() {
+        val (state, actions) = run("/foto@OtroBot")
         assertTrue(state.tasks.isEmpty() && actions.isEmpty())
+    }
+
+    @Test
+    fun listasIsLista() {
+        val (_, actions) = run("pan", "/listas")
+        assertEquals("GENERAL\n• pan", (actions.single() as BotAction.Reply).text)
+    }
+
+    @Test
+    fun listOfOneListIgnoringCaseAccentsAndHash() {
+        val (_, actions) = run("pan #Lidl", "fresas #Mercadona", "/lista #LIDL")
+        assertEquals("LIDL\n• pan", (actions.single() as BotAction.Reply).text)
+        val (_, accents) = run("pan #Lidl", "/lista lídl")
+        assertEquals("LIDL\n• pan", (accents.single() as BotAction.Reply).text)
+    }
+
+    @Test
+    fun unknownListSaysWhichOnesExist() {
+        val (_, actions) = run("pan #Lidl", "lavar el coche", "/lista aldi")
+        assertEquals("No hay pendientes en «aldi». Listas: General, Lidl.", (actions.single() as BotAction.Reply).text)
     }
 
     @Test

@@ -1,6 +1,7 @@
 #!/bin/bash
-# Configura el bot de Telegram de las tareas: lee scripts/telegram.local (ver telegram.example), comprueba el token
-# y escribe el bot y el grupo en la app por ADB, que se reinicia con ellos.
+# Configura el bot de Telegram de las tareas: lee scripts/telegram.local (ver telegram.example), comprueba el token,
+# registra el menú de comandos (lo que sale al escribir "/") y escribe el bot y el grupo en la app por ADB, que se
+# reinicia con ellos.
 # Sin CHAT_ID, enseña los grupos donde está el bot para elegir uno (no toca el marco).
 #
 # Uso: scripts/telegram.sh [fichero]   (por defecto scripts/telegram.local)
@@ -52,6 +53,15 @@ if not chat_id:
     sys.exit(2)
 chat = call("getChat", chat_id=chat_id)["result"]
 print(f"Grupo: {chat.get('title', chat_id)}")
+# El menú que sale al escribir "/" en el grupo
+commands = [
+    {"command": "lista", "description": "Tareas pendientes (/lista lidl: solo esa lista)"},
+    {"command": "hecho", "description": "Tachar una tarea: /hecho leche"},
+    {"command": "ayuda", "description": "Cómo apuntar y tachar tareas"},
+]
+for scope in ({"type": "default"}, {"type": "all_group_chats"}):
+    call("setMyCommands", commands=json.dumps(commands, ensure_ascii=False), scope=json.dumps(scope))
+print("Menú de comandos: /lista, /hecho, /ayuda")
 PY
 
 echo "==> Bot en ${ANDROID_SERIAL:-el dispositivo USB}"

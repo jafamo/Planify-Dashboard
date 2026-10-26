@@ -40,7 +40,8 @@ sealed interface BotAction {
  * Las tareas del grupo de Telegram de la familia:
  * - cualquier texto es una tarea (una por línea), en la lista de su `#etiqueta` o en [DEFAULT_LIST];
  * - "-leche", "/hecho leche" o responder "hecho" al mensaje de la tarea la completan (y desaparece);
- * - "/lista" contesta con las pendientes y "/ayuda", con cómo se usa.
+ * - "/lista" contesta con las pendientes ("/lista lidl", solo las de esa lista) y "/ayuda", con cómo se usa; un
+ *   comando que no conoce, con los que hay.
  * Lógica pura: [TasksRepository] la aplica a cada mensaje y ejecuta las [BotAction].
  */
 object TaskBoard {
@@ -70,9 +71,19 @@ object TaskBoard {
         return state.without(task) to task
     }
 
-    /** Texto de "/lista": las pendientes por lista. Sin Markdown: un "*" o "_" en una tarea rompería el mensaje. */
-    fun summary(tasks: List<Task>): String {
+    /**
+     * Texto de "/lista": las pendientes por lista, o solo las de [list] (sin mayúsculas, tildes ni "#"). Sin Markdown:
+     * un "*" o "_" en una tarea rompería el mensaje.
+     */
+    fun summary(tasks: List<Task>, list: String? = null): String {
         if (tasks.isEmpty()) return "No hay tareas pendientes 🎉"
+        val wanted = list?.removePrefix("#")?.let(::normalize)?.takeIf { it.isNotEmpty() }
+        if (wanted != null) {
+            val lists = lists(tasks)
+            val match = lists.entries.firstOrNull { normalize(it.key) == wanted }
+                ?: return "No hay pendientes en «${list.removePrefix("#").trim()}». Listas: ${lists.keys.joinToString(", ")}."
+            return "${match.key.uppercase(Locale.ROOT)}\n" + match.value.joinToString("\n") { "• ${it.title}" }
+        }
         return lists(tasks).entries.joinToString("\n\n") { (list, items) ->
             "${list.uppercase(Locale.ROOT)}\n" + items.joinToString("\n") { "• ${it.title}" }
         }
@@ -117,9 +128,11 @@ object TaskBoard {
         val argument = text.substringAfter(' ', "").trim()
         return when (name) {
             "/hecho", "/hecha", "/borrar" -> complete(state, message, argument)
-            "/lista", "/tareas" -> state to listOf(BotAction.Reply(message.messageId, summary(state.tasks)))
+            "/lista", "/listas", "/tareas" -> state to listOf(BotAction.Reply(message.messageId, summary(state.tasks, argument)))
             "/start", "/ayuda", "/help" -> state to listOf(BotAction.Reply(message.messageId, HELP))
-            else -> state to emptyList()
+            // Los dirigidos a otro bot del grupo ("/foto@OtroBot") no son cosa nuestra
+            else -> if ('@' in text.substringBefore(' ')) state to emptyList()
+            else state to listOf(BotAction.Reply(message.messageId, "No conozco $name. Usa /lista, /hecho o /ayuda."))
         }
     }
 
@@ -139,5 +152,5 @@ object TaskBoard {
         "• Escribe la tarea: «comprar leche». Una por línea si son varias.\n" +
         "• Con #lista va a esa lista: «leche #compra».\n" +
         "• Para tacharla: «-leche», «/hecho leche» o responde «hecho» a su mensaje.\n" +
-        "• /lista enseña las pendientes."
+        "• /lista enseña las pendientes; /lista lidl, solo las de esa lista."
 }

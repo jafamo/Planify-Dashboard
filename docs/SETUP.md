@@ -107,7 +107,7 @@ Opcional. Las tareas se apuntan en el grupo de Telegram de la familia y un bot l
 **En el grupo:**
 - Cualquier mensaje es una tarea; varias líneas, varias tareas. Con `#etiqueta` va a esa lista (`leche #compra` → Compra); sin ella, a General.
 - `-leche`, `/hecho leche` o responder «hecho» (u «ok», «listo», ✅…) al mensaje de la tarea la tachan. Sin tildes ni mayúsculas, y vale una parte del nombre si solo hay una que encaje.
-- `/lista` contesta con las pendientes; `/ayuda`, con esto mismo.
+- `/lista` (o `/listas`, `/tareas`) contesta con las pendientes; `/lista lidl`, solo las de esa lista. `/ayuda`, con esto mismo. Un comando que no conoce contesta con los que hay (salvo los dirigidos a otro bot, `/algo@OtroBot`). `telegram.sh` los registra en Telegram, así que al escribir `/` en el grupo sale el menú.
 - El bot reacciona con ✍ al apuntar y 👌 al tachar. Solo atiende al grupo configurado.
 
 **En el marco:** la pantalla Tareas (en la barra lateral, solo con el bot configurado), una columna por lista. Una pulsación larga tacha la tarea y el bot lo cuenta en el grupo. En Ajustes, el grupo aparece con los calendarios, «Al día» o «No responde».
