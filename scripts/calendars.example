@@ -1,0 +1,15 @@
+# Calendarios de Google que muestra el dashboard. Cópialo como scripts/calendars.local (git lo ignora), rellénalo y
+# lanza scripts/calendars.sh con el marco conectado (por USB, o con ANDROID_SERIAL=<ip>:5555 por Wi-Fi).
+#
+# Una línea por calendario:   nombre | color | dirección secreta iCal | rutinas
+#
+# - La dirección: en calendar.google.com, desde un ordenador, Configuración → el calendario → Integrar el
+#   calendario → «Dirección secreta en formato iCal». Es como una contraseña: quien la tenga ve todo el calendario,
+#   también los eventos privados. Si se filtra, «Restablecer» la cambia (y hay que volver a lanzar el script).
+# - El color, en #RRGGBB. Vacío: uno de la paleta.
+# - «rutinas» al final (opcional): sus eventos salen en Rutinas de hoy en lugar de en los eventos.
+# - Si un evento está en dos calendarios, sale con el primero de la lista.
+
+Familia | #6923E2 | https://calendar.google.com/calendar/ical/xxxxxxxx%40group.calendar.google.com/private-xxxxxxxx/basic.ics
+#Ana     | #2563EB | https://calendar.google.com/calendar/ical/ana%40gmail.com/private-xxxxxxxx/basic.ics
+#Rutinas | #F59E0B | https://calendar.google.com/calendar/ical/yyyyyyyy%40group.calendar.google.com/private-yyyyyyyy/basic.ics | rutinas
