@@ -28,7 +28,7 @@
 1. **El dashboard es una app nativa** (Kotlin y Compose, minSdk 29). No necesita una WebView ni un Chrome modernos, que fueron el motivo de actualizar en los proyectos de wesbos.
 2. **La seguridad no mejora tanto como parece.** El kernel y el vendor siguen siendo los de fábrica (4.9, sin parches), y el phh 12.1 tampoco tiene parches recientes. Lo que de verdad protege es **aislar el marco**: cortafuegos por UID, quitar Uhale y las apps de fábrica, y limitar `su`.
 3. **Con 1 GB de RAM**, Android 12 o superior deja menos memoria libre que Android 10, y Android 14 o superior ya dio problemas de memoria en otro marco (`per_app_memcg`, reinicios de `system_server`; ver [`android14-dsu.md`](https://github.com/wesbos/photo-frame-dashboard/blob/main/docs/android14-dsu.md) de wesbos).
-4. **TLS ya funciona en Android 10**: ISRG Root X1 está en el almacén y Open-Meteo (y un backend con Let's Encrypt) encadenan a ella (ver [FRAME.md](FRAME.md#tls)).
+4. **TLS ya funciona en Android 10**: ISRG Root X1 está en el almacén y Open-Meteo encadena a ella, y Google Calendar a GTS Root R4, que también está (ver [FRAME.md](FRAME.md#tls)).
 
 ### Si algún día se hace la opción B
 

@@ -142,4 +142,9 @@ step "Arranque personalizado (logo y animación)"
 
 step "Arrancando el dashboard"
 sh am start -n "$PKG/.MainActivity" >/dev/null
-echo "Listo. Conecta el Wi-Fi con \"Ir a Ajustes\" en el login (solo 2,4 GHz y WPA2: el chip no soporta WPA3)."
+if [ -f "$HERE/scripts/calendars.local" ]; then
+    "$HERE/scripts/calendars.sh"
+else
+    echo "Sin scripts/calendars.local: copia scripts/calendars.example, rellénalo y lanza scripts/calendars.sh."
+fi
+echo "Listo. Conecta el Wi-Fi con \"Ir a Ajustes\" (solo 2,4 GHz y WPA2: el chip no soporta WPA3)."

@@ -81,8 +81,9 @@ Comprobado: **no hay indicios del malware de Quokka**. No existe `/data/data/com
 ## TLS
 
 - El almacén del sistema tiene 138 CA, incluida **ISRG Root X1** (`6187b673.0`).
-- `api.open-meteo.com`/`geocoding-api.open-meteo.com` y un backend con certificado de Let's Encrypt sirven la cadena `YR1|YR2 → Root YR → ISRG Root X1` (Root YR con firma cruzada de X1).
-- Por tanto **Android 10 valida estos certificados sin incluir raíces propias** en la app. Si tu backend usa otra CA, comprueba que esté en el almacén del marco (`/system/etc/security/cacerts`).
+- `api.open-meteo.com`/`geocoding-api.open-meteo.com` sirven la cadena `YR1|YR2 → Root YR → ISRG Root X1` (Root YR con firma cruzada de X1).
+- `calendar.google.com` (los calendarios iCal) sirve `*.google.com → WE2 → GTS Root R4`, con R4 también firmada por GlobalSign Root CA. El almacén tiene **GTS Root R1–R4** (`f013ecaf.0`, `c559d742.0`, `6b03dec0.0`, `5acf816d.0`, hasta 2036), así que la cadena no depende de GlobalSign Root CA (`b0f3e76e.0`, que caduca el 28 de enero de 2028). Comprobado en octubre de 2026.
+- Por tanto **Android 10 valida estos certificados sin incluir raíces propias** en la app. Si lees calendarios de otro servidor, comprueba que su CA esté en el almacén del marco (`/system/etc/security/cacerts`).
 
 ## Escalera de recuperación
 

@@ -1,14 +1,14 @@
 # Planify - Dashboard 🖼️
 
-Un marco de fotos digital de unos 80 € convertido en la pantalla de la familia: hora, tiempo, eventos, rutinas y tareas de un vistazo, colgado en la pared, sin la app del fabricante y sin suscripciones.
+Un marco de fotos digital de unos 80 € convertido en la pantalla de la familia: hora, tiempo, eventos y rutinas de un vistazo, colgado en la pared, sin la app del fabricante y sin suscripciones.
 
 **Este repositorio es, sobre todo, una guía para agentes** (Claude Code, Codex…) que quieran crear su propia versión: qué hay que hacer, en qué orden, con qué requisitos y qué se aprendió por el camino. Nosotros partimos de [wesbos/photo-frame-dashboard](https://github.com/wesbos/photo-frame-dashboard) de la misma forma.
 
-Este proyecto está conectado con la aplicación y el backend de Planify:
-- **[Planify-APP](https://github.com/eusonlito/Planify-APP):** la app Android donde se crean y editan calendarios, eventos, rutinas, personas y tareas.
-- **[Planify-Backend](https://github.com/eusonlito/Planify-Backend):** la API (PHP + SQLite) que guarda todo.
+Los datos salen de **Google Calendar**: el marco lee la «dirección secreta en formato iCal» de uno o varios calendarios, así que se siguen creando y editando como siempre, desde el móvil (iPhone o Android) o desde la web, y no hace falta servidor propio, ni cuenta de Google en el marco, ni nada que caduque. El tiempo viene de [Open-Meteo](https://open-meteo.com/), sin clave.
 
-**Pero puedes crear tu propia versión de todo sin problema:** usar otro backend (Google Calendar, CalDAV, Home Assistant, un JSON propio…), otro diseño, otras pantallas u otro marco. La [fase 3](#fase-3-decide-qué-app-vas-a-instalar) explica qué hay que cambiar en cada caso.
+El proyecto nació conectado a [Planify-APP](https://github.com/eusonlito/Planify-APP) y [Planify-Backend](https://github.com/eusonlito/Planify-Backend) (app solo para Android); esa versión sigue en el historial de git, antes del commit «Calendarios de Google (iCal) en lugar de Planify».
+
+**Pero puedes crear tu propia versión de todo sin problema:** usar otra fuente de datos (CalDAV, Home Assistant, un JSON propio…), otro diseño, otras pantallas u otro marco. La [fase 3](#fase-3-decide-de-dónde-salen-los-datos) explica qué hay que cambiar.
 
 <p align="center">
   <img src="docs/images/frame.jpg" width="80%" alt="El dashboard funcionando en el marco XORO CPF 10PF" />
@@ -32,15 +32,15 @@ Este proyecto está conectado con la aplicación y el backend de Planify:
 
 ## Capturas
 
-Todas las secciones de la app, en el emulador con las medidas del marco (1920×1200) y datos de demostración.
+Todas las secciones de la app, en el emulador con las medidas del marco (1920×1200) y los calendarios de demostración (`scripts/demo.sh`).
 
 ### Hoy
-La pantalla principal: reloj de paletas, el siguiente evento o rutina con cuenta atrás (si es de hoy o de mañana), el tiempo (ahora, el día de hoy de 00 a 23 h con la hora actual marcada y los próximos días; deslizando sobre la curva se cambia de día), el calendario del mes, los próximos eventos y las rutinas de hoy. Al tocar un día del calendario, la lista pasa a ser la de ese día. Las listas de eventos y rutinas se abren con un solo elemento pasado a la vista, el último, y vuelven a esa posición tras un minuto sin tocar la pantalla.
+La pantalla principal: reloj de paletas, el siguiente evento o rutina con cuenta atrás (si es de hoy o de mañana), el tiempo (ahora, el día de hoy de 00 a 23 h con la hora actual marcada y los próximos días; deslizando sobre la curva se cambia de día), el calendario del mes, los próximos eventos (los 40 siguientes) y las rutinas de hoy. Los eventos de todo el día dicen «Todo el día» y no tienen cuenta atrás. Al tocar un día del calendario, la lista pasa a ser la de ese día. Las listas de eventos y rutinas se abren con un solo elemento pasado a la vista, el último, y vuelven a esa posición tras un minuto sin tocar la pantalla.
 
 <img src="docs/images/today.png" alt="Hoy" />
 
 ### Calendario
-Dos filas, la semana actual y la siguiente, de lunes a domingo, deslizando en vertical de semana en semana. Cada día, en su tarjeta: el día y el número (hoy, en rojo), el tiempo en una línea, los eventos y abajo, en una caja, las rutinas. Los días pasados, atenuados.
+Dos filas, la semana actual y la siguiente, de lunes a domingo, deslizando en vertical de semana en semana. Cada día, en su tarjeta: el día y el número (hoy, en rojo), el tiempo en una línea, los eventos (los de varios días, en cada uno de ellos) y abajo, en una caja, las rutinas. Los días pasados, atenuados.
 
 <img src="docs/images/calendar.png" alt="Calendario" />
 
@@ -55,13 +55,8 @@ Dos páginas que se deslizan. La primera: el día de hoy por horas, de 00 a 23 c
   <img src="docs/images/weather-day.png" width="49%" alt="Tiempo: un día de la semana siguiente por horas" />
 </p>
 
-### Tareas
-Las tareas pendientes de las listas elegidas en la APP, una columna por lista.
-
-<img src="docs/images/tasks.png" alt="Tareas" />
-
 ### Ajustes
-Ubicación del tiempo (búsqueda en Open-Meteo), horario de pantalla (entre semana y fin de semana, con el interruptor «Reloj nocturno»: si se desactiva, fuera de horario la pantalla se apaga del todo), brillo (un deslizador, con el porcentaje en el título, y «A» para el automático del sistema), Conexión (estado del Wi-Fi) y, en su propia caja, Wi-Fi, Ajustes de Android, cerrar sesión y apagar o reiniciar.
+Ubicación del tiempo (búsqueda en Open-Meteo), horario de pantalla (entre semana y fin de semana, con el interruptor «Reloj nocturno»: si se desactiva, fuera de horario la pantalla se apaga del todo), **Calendarios** (cada uno con su color y si está al día o no responde, por ejemplo porque se ha restablecido su dirección en Google), brillo (un deslizador, con el porcentaje en el título, y «A» para el automático del sistema), Conexión (estado del Wi-Fi) y, en su propia caja, Wi-Fi, Ajustes de Android y apagar o reiniciar.
 
 <img src="docs/images/settings.png" alt="Ajustes" />
 
@@ -70,10 +65,10 @@ Fuera de horario, o al pulsar la luna de la barra lateral, la pantalla no se apa
 
 <img src="docs/images/night.png" alt="Reloj nocturno" />
 
-### Inicio de sesión
-Con la cuenta de Planify. Sin Internet, en su lugar aparece "Esperando conexión a Internet…" con un botón a los ajustes de Wi-Fi.
+### Sin calendarios
+Explica dónde sacar la dirección secreta y cómo pasarla al marco (`scripts/calendars.sh`): las URLs son demasiado largas para teclearlas en él. Sin Internet, en su lugar aparece "Esperando conexión a Internet…" con un botón a los ajustes de Wi-Fi.
 
-<img src="docs/images/login.png" alt="Inicio de sesión" />
+<img src="docs/images/setup.png" alt="Sin calendarios" />
 
 ---
 
@@ -160,13 +155,13 @@ La ficha completa, con todas las particiones y el software de fábrica, está en
 **Además:**
 - Un cable **USB-C de datos** (no solo carga).
 - Una red Wi-Fi de **2,4 GHz con WPA2** (el chip no soporta WPA3 ni 5 GHz). Mejor una red de invitados.
-- Si usas esta app tal cual: un [Planify-Backend](https://github.com/eusonlito/Planify-Backend) accesible por HTTPS y una cuenta creada con la [Planify-APP](https://github.com/eusonlito/Planify-APP).
+- Si usas esta app tal cual: uno o varios calendarios de Google con su «dirección secreta en formato iCal». Las cuentas de Google Workspace (trabajo, colegio) pueden tenerla desactivada por el administrador; las de Gmail, no.
 
 ---
 
 ## Las fases, paso a paso
 
-`scripts/install.sh` hace las fases 2, 4, 5, 6, 7 y 8 de una vez y es idempotente (repetirlo actualiza la app y vuelve a aplicar la configuración). Aun así, entiende cada fase antes de lanzarlo: el detalle de cada paso está en [docs/SETUP.md](docs/SETUP.md).
+`scripts/install.sh` hace las fases 2, 4, 5, 6, 7 y 8 de una vez (y, si existe `scripts/calendars.local`, pasa los calendarios de la fase 9) y es idempotente (repetirlo actualiza la app y vuelve a aplicar la configuración). Aun así, entiende cada fase antes de lanzarlo: el detalle de cada paso está en [docs/SETUP.md](docs/SETUP.md).
 
 ### Fase 1: identifica el marco
 
@@ -181,37 +176,28 @@ La ficha completa, con todas las particiones y el software de fábrica, está en
 - **Verificación:** `sha256sum -c SHA256SUMS` en esa carpeta. Guarda además una copia fuera del repositorio.
 - **Deshacer:** no aplica; es la red de seguridad del resto.
 
-### Fase 3: decide qué app vas a instalar
+### Fase 3: decide de dónde salen los datos
 
-La app de este repositorio (`android/`) es un dashboard nativo en Kotlin y Jetpack Compose, de solo lectura, que habla con Planify-Backend y con Open-Meteo. Tienes tres caminos:
+La app de este repositorio (`android/`) es un dashboard nativo en Kotlin y Jetpack Compose, de solo lectura, que lee calendarios iCal y Open-Meteo. Tienes tres caminos:
 
-1. **Usarla con Planify** (lo más rápido): monta [Planify-Backend](https://github.com/eusonlito/Planify-Backend), crea tu cuenta con [Planify-APP](https://github.com/eusonlito/Planify-APP) y marca en la APP qué calendarios y listas se ven (interruptor «Mostrar en el dashboard»).
-2. **Usarla con otra fuente de datos:** la app solo necesita esto del backend, así que basta con reimplementarlo (o cambiar `data/Api.kt` y los repositorios de `data/repository/`):
+1. **Usarla con Google Calendar** (lo previsto): en [calendar.google.com](https://calendar.google.com), desde un ordenador, cada calendario tiene en *Configuración → el calendario → Integrar el calendario* su **dirección secreta en formato iCal**. Se pueden poner varios (el común de la familia, los de cada persona…): cada uno con su nombre y color, y si un evento está en dos, sale una vez. Ojo: la dirección enseña todo el calendario, también los eventos privados, y quien la tenga lo ve; si se filtra, «Restablecer» la cambia.
+2. **Usarla con otra fuente iCal:** cualquier URL que sirva un `.ics` vale igual (iCloud con un calendario público, Nextcloud, Outlook…). Lo único propio de Google es dónde se saca la dirección.
+3. **Otra fuente de datos o tu propia app:** la capa de datos está en `data/` (`ical/IcsParser.kt` y `repository/EventsRepository.kt`); las pantallas solo ven `Content(events, sessions)`. Si haces otra app, respeta lo que pide el marco ([lo que aprendimos](#lo-que-aprendimos)): minSdk 29, sin librerías nativas (32 bits), diseño en los píxeles nativos y cuidado con las animaciones continuas y la memoria. Si es una web, wesbos usa una WebView en modo quiosco; aquí se descartó por memoria y calor.
 
-   | Petición | Respuesta |
-   |---|---|
-   | `POST user/auth` `{email, password}` | `{id, name, email, token}` |
-   | `GET event?start_date&end_date&routine&timezone&dashboard=true` con `Authorization: Bearer <token>` | `[{id, calendar_id, calendar_name, calendar_color, title, date_at: "Y-m-d H:i:s", routine_id, persons: [{id, name, color}]}]`. `routine=false` da los eventos y `routine=true` las sesiones de rutinas |
-   | `GET task?dashboard=true` | `[{id, task_list_id, task_list_name, task_list_color, title, order, completed_at}]` |
-
-   El tiempo viene de Open-Meteo (sin clave), así que no depende del backend.
-3. **Hacer tu propia app:** respeta lo que pide el marco ([lo que aprendimos](#lo-que-aprendimos)): minSdk 29, sin librerías nativas (32 bits), diseño en los píxeles nativos y cuidado con las animaciones continuas. Si es una web, wesbos usa una WebView en modo quiosco; aquí se descartó por memoria y calor.
+Las **rutinas** (lo que se repite cada semana: recoger a los niños, extraescolares…) salen de los calendarios marcados como `rutinas`: lo más cómodo es un calendario aparte en Google, con eventos que se repiten. Las **tareas** de Planify no tienen equivalente en iCal y no se muestran.
 
 ### Fase 4: configura y compila
 
 ```sh
-cp android/planify.properties.example android/planify.properties
-#   planify.baseUrl=https://tu-backend/        URL de la API (obligatoria para la release)
-
 cp scripts/config.example scripts/config.local
 #   ADB_FROM=<ip-de-tu-pc>                     única IP que podrá usar ADB por Wi-Fi (vacía: solo USB)
 #   FRAME_TIMEZONE=Europe/Madrid               opcional (por defecto, la de tu PC)
 #   FRAME_NTP=pool.ntp.org                     opcional
 ```
 
-Los dos ficheros están en `.gitignore`. La URL también se puede pasar con `-Pplanify.baseUrl=…` o la variable `PLANIFY_BASE_URL`, y la release no compila sin ella. La versión debug apunta al backend local visto desde el emulador (`planify.debugBaseUrl`, por defecto `http://10.0.2.2:3000/`).
+`config.local` está en `.gitignore`. La compilación no necesita ninguna URL: los calendarios se pasan a la app ya instalada (fase 9). Hace falta JDK 17 (`JAVA_HOME`): con versiones mucho más nuevas Gradle puede no arrancar.
 
-Antes de tocar el marco, pruébala en un emulador con sus medidas (API 29, 1920×1200, 320 dpi, 1 GB): ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#desarrollo).
+Antes de tocar el marco, se puede probar en un emulador con sus medidas (API 29, 1920×1200, 320 dpi, 1 GB) y los calendarios de demostración: ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#desarrollo). El emulador pide unos 2 GB de RAM y, con Gradle abierto a la vez, puede dejar sin memoria un PC de 16 GB.
 
 ### Fase 5: instala y convierte el marco en quiosco
 
@@ -249,9 +235,9 @@ scripts/install.sh --build        # la primera vez, por USB
 
 ### Fase 9: primer uso
 
-1. **Wi-Fi:** "Ir a Ajustes" en la pantalla de inicio de sesión. Si el router está en modo mixto WPA2/WPA3, añade la red a mano como WPA/WPA2-Personal ([docs/SETUP.md, Primer uso](docs/SETUP.md#primer-uso)).
-2. **Inicia sesión** con la cuenta de Planify.
-3. **Ajustes del dashboard:** ubicación del tiempo, horario de pantalla y brillo.
+1. **Wi-Fi:** "Ir a Ajustes" en la pantalla de espera. Si el router está en modo mixto WPA2/WPA3, añade la red a mano como WPA/WPA2-Personal ([docs/SETUP.md, Primer uso](docs/SETUP.md#primer-uso)).
+2. **Calendarios:** en el PC, `cp scripts/calendars.example scripts/calendars.local` (está en `.gitignore`), una línea por calendario (`nombre | #color | dirección secreta | rutinas`) y `scripts/calendars.sh` con el marco conectado. Los escribe en la app por ADB y la reinicia; para cambiarlos, se edita el fichero y se repite. Nunca subas ese fichero ni pegues las direcciones en ningún sitio.
+3. **Ajustes del dashboard:** ubicación del tiempo, horario de pantalla y brillo. En Ajustes → Calendarios, cada uno debe decir «Al día».
 
 ### Fase 10: verificación final
 
@@ -265,20 +251,20 @@ scripts/install.sh --build        # la primera vez, por USB
 
 ## Qué hace la app
 
-Barra lateral con Hoy, Calendario, Tiempo, Tareas, sincronizar, Ajustes y apagar pantalla. Tras 2 minutos sin tocar, vuelve a Hoy.
+Barra lateral con Hoy, Calendario, Tiempo, sincronizar, Ajustes y apagar pantalla. Tras 2 minutos sin tocar, vuelve a Hoy.
 
 | Pantalla | Contenido |
 |---|---|
 | **Hoy** | Reloj de paletas (split-flap), el siguiente evento o rutina con cuenta atrás (si es de hoy o de mañana), el tiempo (ahora, el día de hoy de 00 a 23 h con la hora actual marcada y los próximos días, que se deslizan), calendario del mes, próximos eventos y rutinas de hoy |
 | **Calendario** | Dos semanas en dos filas, deslizando en vertical: el tiempo de cada día, los eventos y una caja con las rutinas |
 | **Tiempo** | Hoy de 00 a 23 h y 7 días; la semana siguiente en gráfica; tocar un día abre sus 24 horas con su cabecera |
-| **Tareas** | Todas las listas elegidas, en columnas |
 | **Reloj nocturno** | Fuera de horario, o al pulsar la luna: hora, fecha y tiempo sobre negro con el brillo al mínimo; tocarlo enseña el dashboard |
-| **Ajustes** | Ubicación del tiempo (Open-Meteo), horario de pantalla (con reloj nocturno o apagado), brillo (deslizador o automático), Conexión (estado del Wi-Fi) y los botones de Wi-Fi, Ajustes de Android, cerrar sesión y apagar o reiniciar |
+| **Ajustes** | Ubicación del tiempo (Open-Meteo), horario de pantalla (con reloj nocturno o apagado), estado de cada calendario, brillo (deslizador o automático), Conexión (estado del Wi-Fi) y los botones de Wi-Fi, Ajustes de Android y apagar o reiniciar |
 
 Por dentro (detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
 - **Píxeles nativos:** la app fija `Density(1f)`, así que todo se diseña en los 1920×1200 píxeles del panel (1 dp = 1 px), sin tocar la densidad del sistema.
-- **Sin red, todo como la última vez:** cada dato se guarda en disco con escritura atómica y se pinta desde ahí (*stale-if-error*). Contenido cada 5 minutos, tiempo cada 30.
+- **Calendarios iCal:** cada uno se descarga entero cada 5 minutos y se expanden sus repeticiones (con [biweekly](https://github.com/mangstadt/biweekly)) de 12 meses atrás a 12 meses adelante. Antes se descartan los eventos sueltos fuera de ese rango, porque el fichero trae años de historial y el marco tiene 1 GB.
+- **Sin red, todo como la última vez:** cada dato se guarda en disco con escritura atómica y se pinta desde ahí (*stale-if-error*); si un calendario falla, los demás siguen. Calendarios cada 5 minutos, tiempo cada 30.
 - **Hora fiable:** como el RTC no guarda la hora, nada anterior a la compilación de la app se toma por bueno ("Sincronizando hora…"), y sin hora válida no se apaga la pantalla ni se pide nada.
 - **Iconos del tiempo animados** ([Meteocons](https://github.com/basmilius/meteocons)), pre-renderizados una vez a su tamaño para no calentar el marco.
 - **Máximas y mínimas** calculadas a partir de las horas, para que coincidan siempre con la gráfica.
@@ -323,8 +309,10 @@ Muchos marcos parecidos usan el mismo SoC A133 o placas Rockchip, pero cambian e
 ## Estructura
 
 ```
-android/              app Android (Kotlin, Jetpack Compose, minSdk 29); planify.properties.example
+android/              app Android (Kotlin, Jetpack Compose, minSdk 29)
 scripts/install.sh    fases 2 y 4 a 8; se configura con scripts/config.local (config.example)
+scripts/calendars.sh  calendarios de la app, desde scripts/calendars.local (calendars.example)
+scripts/demo.sh       emulador con calendarios de demostración (scripts/demo/calendars.py)
 scripts/frame/        backup.sh (eMMC), planify-frame.sh y .rc (cortafuegos y wakelock al arrancar)
 scripts/boot/         logo del bootloader y animación de arranque (boot.html → make.sh → install.sh)
 scripts/meteocons.py  iconos del tiempo para la app
