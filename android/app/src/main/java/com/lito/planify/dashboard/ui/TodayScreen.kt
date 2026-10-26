@@ -72,6 +72,9 @@ private val Gap = 28.dp
 /** Tiempo sin tocar la pantalla tras el que el calendario de Hoy vuelve al mes actual y Próximos eventos deja el día elegido. */
 private const val PICK_MILLIS = 5 * 60_000L
 
+/** Eventos futuros que enseña Próximos eventos. */
+private const val UPCOMING_MAX = 40
+
 /** Tiempo sin tocar la pantalla tras el que Próximos eventos y Rutinas vuelven a su posición si se han deslizado a mano. */
 private const val SCROLL_RESET_MILLIS = 60_000L
 
@@ -300,7 +303,9 @@ private fun EventsCard(state: UiState, day: LocalDate?, lastTouch: Long, modifie
         all.filter { it.at.toLocalDate() == day }
     } else {
         val next = nextUp(state)
-        all.filter { it.at.toLocalDate() >= now.toLocalDate() && it !== next }
+        // Los de hoy ya pasados y los [UPCOMING_MAX] siguientes: con las repeticiones de un año, todos serían cientos
+        val (past, upcoming) = all.filter { it.at.toLocalDate() >= now.toLocalDate() && it !== next }.partition { it.isPast(now) }
+        past + upcoming.take(UPCOMING_MAX)
     }
     Card(modifier) {
         val dayName = day?.let { "${it.weekdayName()} ${it.dayOfMonth}" }

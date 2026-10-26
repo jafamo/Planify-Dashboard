@@ -79,8 +79,9 @@ class SettingsCallbacks(
 )
 
 /**
- * Tres columnas que caben enteras en pantalla, sin desplazamiento; la de la derecha, en dos cajas (brillo y conexión, y
- * los botones). Todos los botones, a lo ancho.
+ * Tres columnas que caben enteras en pantalla, sin desplazamiento; la del centro, el horario y debajo los calendarios
+ * (con el horario activado caben unos 5); la de la derecha, en dos cajas (brillo y conexión, y los botones). Todos
+ * los botones, a lo ancho.
  * Dentro de las cajas (blancas) los controles van en crema ([Control]) para que se distingan.
  */
 @Composable
@@ -92,13 +93,13 @@ fun SettingsScreen(state: UiState, actions: DashboardActions, callbacks: Setting
             }
             Panel(Modifier.weight(1f).fillMaxHeight()) {
                 ScheduleSection(state.schedule, callbacks.onSchedule)
+                Section("Calendarios") { CalendarsCard(state) }
             }
             // La columna de la derecha, en dos cajas: brillo y conexión arriba, y los botones abajo
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(28.dp)) {
                 Panel(Modifier.fillMaxWidth().weight(1f)) {
                     BrightnessSection(state.brightness, callbacks.onBrightness)
                     Section("Conexión") { WifiCard() }
-                    Section("Calendarios") { CalendarsCard(state) }
                 }
                 Panel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(ButtonGap)) {

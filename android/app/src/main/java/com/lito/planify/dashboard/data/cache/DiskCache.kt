@@ -23,7 +23,7 @@ class DiskCache(private val dir: File, private val gson: Gson = Gson()) {
         val file = file(key)
         if (!file.isFile) return null
         return runCatching {
-            val entry: Cached<T>? = gson.fromJson(file.readText(), entryType(type))
+            val entry: Cached<T>? = file.bufferedReader().use { gson.fromJson(it, entryType(type)) }
             // Gson no comprueba la nulabilidad de Kotlin: sin valor, la entrada no sirve.
             entry?.takeIf { it.value != null }
         }.getOrNull()
@@ -34,8 +34,11 @@ class DiskCache(private val dir: File, private val gson: Gson = Gson()) {
         dir.mkdirs()
         val target = file(key)
         val temp = File(dir, "${target.name}.tmp")
+        // En streaming: un calendario con un año de repeticiones no cabe holgado en memoria como un único texto
         FileOutputStream(temp).use { out ->
-            out.write(gson.toJson(entry, entryType(type)).toByteArray())
+            val writer = out.bufferedWriter()
+            gson.toJson(entry, entryType(type), writer)
+            writer.flush()
             out.fd.sync()
         }
         if (!temp.renameTo(target)) {
