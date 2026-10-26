@@ -4,6 +4,15 @@
 
 PREFS_PKG=com.lito.planify.dashboard
 
+# Para la app. Siendo Device Owner (en el marco), Android ignora `am force-stop` ("protected package"), así que
+# además se mata el proceso; como es el launcher, Android la vuelve a abrir sola.
+stop_app() {
+    local pid
+    adb shell am force-stop $PREFS_PKG
+    pid="$(adb shell pidof $PREFS_PKG | tr -d '\r' || true)"
+    if [ -n "$pid" ]; then adb shell kill "$pid"; fi
+}
+
 write_prefs() {
     local dir="/data/data/$PREFS_PKG" tmp prefs owner
     tmp="$(mktemp)"
@@ -24,12 +33,12 @@ PY
     owner="$(adb shell stat -c %u:%g "$dir" | tr -d '\r')"
     # Parada antes y después de copiar: es el launcher y Android la vuelve a abrir sola, y al guardar algo (la última
     # hora válida, cada minuto) escribiría encima sus preferencias de antes.
-    adb shell am force-stop $PREFS_PKG
+    stop_app
     adb shell mkdir -p "$dir/shared_prefs"
     adb push "$tmp" "$dir/shared_prefs/dashboard.xml" >/dev/null 2>&1
     rm -f "$tmp"
     adb shell chown -R "$owner" "$dir/shared_prefs"
     adb shell chmod 660 "$dir/shared_prefs/dashboard.xml"
-    adb shell am force-stop $PREFS_PKG
+    stop_app
     adb shell am start -n "$PREFS_PKG/.MainActivity" >/dev/null 2>&1
 }

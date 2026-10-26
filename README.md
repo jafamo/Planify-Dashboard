@@ -235,7 +235,7 @@ scripts/install.sh --build        # la primera vez, por USB
 
 ### Fase 9: primer uso
 
-1. **Wi-Fi:** "Ir a Ajustes" en la pantalla de espera. Si el router está en modo mixto WPA2/WPA3, añade la red a mano como WPA/WPA2-Personal ([docs/SETUP.md, Primer uso](docs/SETUP.md#primer-uso)).
+1. **Wi-Fi:** en el dashboard, Ajustes (la rueda) → Wi-Fi; o "Ir a Ajustes" en la pantalla de espera, si aún no hay calendarios. Elige «Usar MAC del dispositivo» en las opciones avanzadas de la red, para poder reservarle la IP en el router. Si el router está en modo mixto WPA2/WPA3, añade la red a mano como WPA/WPA2-Personal ([docs/SETUP.md, Primer uso](docs/SETUP.md#primer-uso)).
 2. **Calendarios:** en el PC, `cp scripts/calendars.example scripts/calendars.local` (está en `.gitignore`), una línea por calendario (`nombre | #color | dirección secreta | rutinas`) y `scripts/calendars.sh` con el marco conectado. Los escribe en la app por ADB y la reinicia; para cambiarlos, se edita el fichero y se repite. Nunca subas ese fichero ni pegues las direcciones en ningún sitio.
 3. **Ajustes del dashboard:** ubicación del tiempo, horario de pantalla y brillo. En Ajustes → Calendarios, cada uno debe decir «Al día».
 

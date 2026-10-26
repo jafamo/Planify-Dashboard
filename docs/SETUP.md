@@ -59,7 +59,7 @@ ANDROID_SERIAL=<ip-del-marco>:5555 scripts/install.sh --build --no-backup
    - Además deja `su` como `root:shell 4750`: ADB sigue siendo root, pero las apps ya no pueden serlo.
 8. **ADB por Wi-Fi**, solo si hay `ADB_FROM`: `persist.adb.tcp.port=5555` y reinicio de `adbd` (solo la primera vez). Ver [Actualizar por Wi-Fi](#actualizar-por-wi-fi).
 9. **Arranque personalizado** (`scripts/boot/install.sh`): sustituye el logo de XORO y la animación de Uhale por los de Planify. Ver [Arranque personalizado](#arranque-personalizado).
-10. **Arranca el dashboard** y, si existe `scripts/calendars.local`, le pasa los calendarios (`scripts/calendars.sh`). Falta conectar el Wi-Fi con "Ir a Ajustes" en la pantalla de espera (**solo 2,4 GHz**; mejor una red de invitados).
+10. **Arranca el dashboard** y, si existe `scripts/calendars.local`, le pasa los calendarios (`scripts/calendars.sh`). Falta conectar el Wi-Fi desde Ajustes → Wi-Fi del dashboard, o con "Ir a Ajustes" en la pantalla de espera si no hay calendarios (**solo 2,4 GHz**; mejor una red de invitados).
 
 Lo que no se toca: la densidad del sistema (la app se diseña en píxeles nativos), Ajustes de Android, el teclado, WebView y los proveedores del sistema.
 
@@ -90,7 +90,7 @@ El dashboard lee la **dirección secreta en formato iCal** de uno o varios calen
    Rutinas | #EA580C | https://calendar.google.com/calendar/ical/…/private-…/basic.ics | rutinas
    ```
    Color en `#RRGGBB`, o vacío para uno de la paleta que no use otro. `rutinas` al final: sus eventos salen en las rutinas, no en los eventos. Si un evento está en dos calendarios, sale con el primero de la lista.
-3. **Pasarla al marco:** `scripts/calendars.sh` (por Wi-Fi, con `ANDROID_SERIAL=<ip-del-marco>:5555`). Escribe la lista en las preferencias de la app (`shared_prefs/dashboard.xml`) por ADB root y la reinicia; la app borra sola las copias de los calendarios que ya no están. Para añadir, quitar o cambiar uno, se edita el fichero y se repite.
+3. **Pasarla al marco:** `scripts/calendars.sh` (por Wi-Fi, con `ANDROID_SERIAL=<ip-del-marco>:5555`). Escribe la lista en las preferencias de la app (`shared_prefs/dashboard.xml`) por ADB root y la reinicia (siendo Device Owner, Android ignora `am force-stop`, así que `scripts/lib/prefs.sh` mata el proceso y Android la vuelve a abrir como launcher); la app borra sola las copias de los calendarios que ya no están. Para añadir, quitar o cambiar uno, se edita el fichero y se repite.
 
 **Privacidad:** la dirección enseña todo el calendario, también los eventos privados, a quien la tenga. Solo está en tu PC (`calendars.local`) y en el marco (las preferencias de la app, que solo puede leer ella o ADB root); en la caché del marco los ficheros se nombran con un hash de la URL. Si se filtra, «Restablecer» en Google la cambia: la antigua deja de funcionar al momento, Ajustes dirá «No responde» en ese calendario y hay que poner la nueva y repetir `calendars.sh`.
 

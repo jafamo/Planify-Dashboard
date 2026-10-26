@@ -147,4 +147,4 @@ if [ -f "$HERE/scripts/calendars.local" ]; then
 else
     echo "Sin scripts/calendars.local: copia scripts/calendars.example, rellénalo y lanza scripts/calendars.sh."
 fi
-echo "Listo. Conecta el Wi-Fi con \"Ir a Ajustes\" (solo 2,4 GHz y WPA2: el chip no soporta WPA3)."
+echo "Listo. Conecta el Wi-Fi desde Ajustes → Wi-Fi del dashboard (solo 2,4 GHz y WPA2: el chip no soporta WPA3)."
