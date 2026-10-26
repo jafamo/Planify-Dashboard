@@ -4,7 +4,7 @@ Cómo está hecha la app del marco: pantallas, datos, estructura y desarrollo. P
 
 ## Pantallas
 
-La barra lateral izquierda tiene arriba, solo con iconos, Hoy, Calendario, Tiempo, **sincronizar** (vuelve a pedir los calendarios y el tiempo; el icono gira mientras dura), Ajustes y apagar la pantalla. Abajo del todo, la hora (horas y minutos en dos líneas, con "Sin conexión" debajo si falla la red o la sincronización). Tras 2 minutos sin tocar, vuelve a Hoy.
+La barra lateral izquierda tiene arriba, solo con iconos, Hoy, Calendario, Tiempo, Tareas (solo con el bot de Telegram configurado), **sincronizar** (vuelve a pedir los calendarios y el tiempo; el icono gira mientras dura), Ajustes y apagar la pantalla. Abajo del todo, la hora (horas y minutos en dos líneas, con "Sin conexión" debajo si falla la red o la sincronización). Tras 2 minutos sin tocar, vuelve a Hoy.
 
 Sin calendarios configurados se muestra cómo añadirlos (`SetupScreen`: icono, dónde sacar la dirección secreta en Google y `scripts/calendars.sh`). Si no hay Internet, en su lugar aparece "Esperando conexión a Internet…" con "Ir a Ajustes" (ajustes de Wi-Fi).
 
@@ -15,6 +15,7 @@ Sin calendarios configurados se muestra cómo añadirlos (`SetupScreen`: icono, 
 - **Tiempo:** dos páginas que se deslizan. La primera es la tarjeta del tiempo a pantalla completa: el mismo día de hoy de 00 a 23 h que en Hoy (la temperatura de cada hora, también sin «°»), con el icono de cada hora encima de la hora, y 7 días. La segunda, la **semana siguiente** (días 8 a 14): gráfica de máximas y mínimas, lluvia (% y mm) y viento, y las columnas de cada día. En las dos páginas, tocar un día abre sus 24 horas (en la segunda, en lugar de la gráfica semanal) y tocarlo otra vez lo cierra. Deslizar sobre la gráfica cambia de día sin cambiar de página, con la gráfica siguiendo al dedo (en la segunda: semana → lunes → … → domingo); al pasar del último día de la primera sigue la segunda, y antes de su semana se vuelve a la primera. Deslizar fuera de la gráfica, entre las dos páginas.
 - **Iconos del tiempo:** [Meteocons](https://github.com/basmilius/meteocons) de Bas Milius (estilo *line*, licencia MIT, en `third_party/meteocons/`), uno por código WMO de Open-Meteo, de día o de noche. `scripts/meteocons.py` los descarga en la versión fijada, cambia los colores pensados para fondo oscuro (nubes, niebla y viento casi blancos) por tonos pizarra y los deja en `res/raw` (animados, Lottie) y `res/drawable` (los estáticos de la cabecera: nube con lluvia para la probabilidad, gota para la humedad y viento, con la unidad más pequeña). El código diario es el tiempo más significativo de todo el día (si hay niebla por la mañana, el día sale con niebla), así que la columna de hoy, en el tiempo y en el calendario, usa el tiempo de ahora, como la cabecera.
   - **Animados:** el icono de la cabecera y los de las columnas de días (Hoy, Tiempo y Calendario); la fila de horas, estática. Dibujar los Lottie en cada fotograma costaba 1–2 núcleos y subía el marco a 72 °C, así que cada icono se renderiza una vez en segundo plano a su tamaño exacto (90 fotogramas: su bucle de 6 s a 15 fps, caché de 48 MB) y animarlo es pintar un bitmap, todos sincronizados con un único reloj. Medido en el marco: Hoy 31 % de un núcleo, Tiempo 37 %, Calendario 25 %, sin pasar de 61 °C; la app ocupa unos 175 MB y quedan unos 400 MB libres. Con la pantalla apagada no se anima nada.
+- **Tareas:** las del grupo de Telegram, una columna por lista (General primero y las demás por orden alfabético; con más de 4, desplazamiento lateral), cada una con quién la apuntó y "hoy", "ayer" o "hace N días". Pulsación larga para tacharla (`detectTapGestures(onLongPress)`; un toque no hace nada, para que un roce no borre). Sin tareas, "Todo hecho".
 - **Reloj:** en Hoy, un reloj de paletas (`FlipClock`): cada cifra en una placa grafito partida por la mitad y, al cambiar, la mitad de arriba cae y descubre la nueva (medio segundo, solo las cifras que cambian). En la barra lateral, las cifras se deslizan (`RollingText`). Las escalas de animación del sistema están a 0 en el marco, así que estas animaciones fuerzan su propia escala para verse.
 - **Máximas y mínimas:** salen de las 24 horas de cada día (`withDailyFromHourly`, una vez al recibir la previsión), para que el resumen, las cabeceras y las gráficas digan siempre lo mismo. Las diarias de Open-Meteo se calculan con más detalle que la hora en punto y no coincidían.
 
@@ -37,6 +38,7 @@ Las tarjetas llevan una cabecera común (`CardHeader`): icono en un cuadro tinta
   - con la pantalla apagada no se refresca. Lo último se guarda en caché: sin red se sigue mostrando y la barra lateral dice "Sin conexión".
 - **Hora:** el RTC del marco no la conserva. Hasta que NTP la corrige, cualquier hora anterior a la compilación de la app se trata como falsa ("Sincronizando hora…").
 - **Quiosco** con Device Owner: lock task, HOME persistente, sin keyguard ni barra de estado. El horario apaga la pantalla (`lockNow`, como pulsar el botón de encendido: el marco sigue encendido y conectado) y la enciende con una alarma. "Apagar" en la barra lateral hace lo mismo al momento.
+- **Tareas:** un bot de Telegram en el grupo de la familia, leído con `getUpdates` en espera larga (50 s) sin parar, también con la pantalla apagada (Telegram solo guarda 24 h lo no leído); tras un fallo, espera de 15 s a 5 min. Ver [SETUP.md, Tareas con Telegram](SETUP.md#tareas-con-telegram).
 - **Sin cuentas:** los calendarios se leen por su dirección secreta iCal, que `scripts/calendars.sh` escribe en las preferencias de la app. El dashboard solo hace peticiones de lectura.
 - **Diseño:** fondo crema, tarjetas blancas sin borde y el color solo en los calendarios, con las fuentes Geist y Geist Mono (OFL, `licenses/Geist-OFL.txt`).
 
@@ -49,14 +51,17 @@ android/                     proyecto Gradle (mismas versiones que Planify-APP)
     DashboardViewModel.kt    estado, refrescos, calendarios, ubicación, horario
     data/                    Api (iCal + Open-Meteo), modelos, Store (calendarios y ajustes), ReferenceClock
     data/ical/               IcsParser: iCal → apariciones en un rango (biweekly para las repeticiones)
+    data/telegram/           TelegramApi: getUpdates, sendMessage y setMessageReaction
+    data/tasks/              TaskBoard: un mensaje del grupo → tareas nuevas, tachadas o la respuesta del bot
     data/cache/              DiskCache y CachedResource (copia en disco, stale-if-error)
-    data/repository/         EventsRepository (calendarios) y WeatherRepository
+    data/repository/         EventsRepository (calendarios), TasksRepository (bot) y WeatherRepository
     admin/Kiosk.kt           Device Owner: lock task, HOME, lockNow, salir y quitar
     power/ScreenSchedule.kt  horario de pantalla (alarmas exactas, wakelock, apagado de cortesía)
     ui/                      barra lateral y pantallas; WeatherUi (HourlyForecast en Canvas), WeatherIcons y
                              MeteoconFrames (Meteocons pre-renderizados), FlipClock y RollingText
 scripts/install.sh           instala y prepara el marco (ver SETUP.md); se configura en scripts/config.local
 scripts/calendars.sh         calendarios de la app, desde scripts/calendars.local; usa scripts/lib/prefs.sh
+scripts/telegram.sh          bot de las tareas, desde scripts/telegram.local; usa scripts/lib/prefs.sh
 scripts/frame/               copia de la eMMC, cortafuegos de arranque e init .rc
 scripts/boot/                logo del bootloader y animación de arranque (boot.html → make.sh → install.sh)
 scripts/meteocons.py         iconos del tiempo (Meteocons) para res/raw y res/drawable
@@ -98,7 +103,9 @@ La pantalla nunca habla con la red directamente: `DashboardViewModel` usa un rep
 - **`IcsParser`** (`data/ical/`): lee el iCal línea a línea y descarta los eventos sueltos fuera del rango antes de dárselo a [biweekly](https://github.com/mangstadt/biweekly) (Java puro, sin librerías nativas), porque el fichero trae años de historial. Devuelve las apariciones del rango en la hora local del marco: repeticiones (RRULE, RDATE, EXDATE, a la misma hora local también tras el cambio de hora), apariciones movidas o canceladas (RECURRENCE-ID) y eventos de todo el día, uno por cada día que ocupan.
 - **Repositorios** (`data/repository/`): `EventsRepository` (cada calendario con su copia `calendar-<hash de la URL>`, 5 min; junta los calendarios en su orden sin repetir eventos, por UID e inicio; los marcados como rutinas van a `sessions`; borra las copias de los que ya no están) y `WeatherRepository` (Open-Meteo; 30 min; se borra al cambiar de ubicación). Las copias guardan las apariciones sin nombre ni color del calendario: cambiarlos no obliga a descargar. Las respuestas HTTP sin éxito son `HttpError`: un calendario que responde con error (por ejemplo, con la dirección restablecida en Google) sale como "No responde" en Ajustes, pero no cuenta como falta de conexión.
 - **`ReferenceClock`**: el RTC del marco no guarda la hora y, sin red, arranca en la fecha de fábrica. Mientras tanto todo se pinta con la última hora válida (guardada como mucho una vez por minuto), así que la caché se ve igual que la última vez; el reloj muestra "--:--". Sin hora válida no se pide nada a la red, porque las fechas de la petición serían las de fábrica.
-- `Store` (SharedPreferences) solo guarda los calendarios (que escribe `scripts/calendars.sh`) y los ajustes del dispositivo.
+- **`TaskBoard`** (`data/tasks/`): lógica pura de las tareas. Recibe un mensaje y el estado, y devuelve el estado nuevo y lo que hace el bot (reaccionar o contestar).
+- **`TasksRepository`**: aplica cada mensaje del grupo configurado (los de otros chats y de bots se saltan) y guarda las tareas con el `offset` de getUpdates en un único fichero (`tasks`) antes de contestar en el grupo: un corte de luz no repite ni pierde mensajes. Las respuestas del bot son cortesía: si fallan, las tareas ya están. Un 409 es otro `getUpdates` con el mismo token.
+- `Store` (SharedPreferences) solo guarda los calendarios (que escribe `scripts/calendars.sh`), el bot (`scripts/telegram.sh`) y los ajustes del dispositivo.
 
-Tests (`./gradlew :app:testDebugUnitTest`): `IcsParserTest` (repeticiones, cambio de hora, excepciones, todo el día…), `EventsRepositoryTest` (con una API falsa), `DiskCacheTest`, `CachedResourceTest`, `ReferenceClockTest`, `ForecastTest` y `ScreenScheduleTest`.
+Tests (`./gradlew :app:testDebugUnitTest`): `IcsParserTest` (repeticiones, cambio de hora, excepciones, todo el día…), `EventsRepositoryTest` (con una API falsa), `TaskBoardTest`, `TasksRepositoryTest` (con un Telegram falso), `DiskCacheTest`, `CachedResourceTest`, `ReferenceClockTest`, `ForecastTest` y `ScreenScheduleTest`.
 

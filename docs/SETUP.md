@@ -96,6 +96,26 @@ El dashboard lee la **dirección secreta en formato iCal** de uno o varios calen
 
 **Cómo se lee:** cada calendario se descarga entero cada 5 minutos (con la pantalla encendida) y se expanden sus repeticiones de 12 meses atrás a 12 meses adelante, en la zona horaria del marco. Si una descarga falla, se sigue mostrando la última buena.
 
+## Tareas con Telegram
+
+Opcional. Las tareas se apuntan en el grupo de Telegram de la familia y un bot las pasa al marco. El marco lee el grupo con `getUpdates` (espera larga, conexiones salientes a `api.telegram.org`: el cortafuegos no estorba, y su certificado, de Go Daddy Root G2, está en el almacén del marco), así que no hace falta servidor.
+
+1. **El bot:** en Telegram, @BotFather → `/newbot`. Da el token. Después, `/setprivacy` → el bot → **Disable**: si no, en un grupo los bots solo ven los mensajes que empiezan por `/`.
+2. **El grupo:** añade el bot al grupo de la familia (si ya estaba antes de desactivar la privacidad, sácalo y vuelve a añadirlo) y escribe algo.
+3. **Configurarlo:** `cp scripts/telegram.example scripts/telegram.local` (en `.gitignore`), pon el token en `TOKEN` y lanza `scripts/telegram.sh`: sin `CHAT_ID`, enseña los grupos donde está el bot. Pon el del grupo en `CHAT_ID` (empieza por `-`) y vuelve a lanzarlo: comprueba el token y el grupo y los escribe en la app por ADB, que se reinicia. Buscar el grupo usa `getUpdates` desde el PC: con el marco ya leyendo el bot, Telegram contesta 409 (solo puede leerlo uno a la vez).
+
+**En el grupo:**
+- Cualquier mensaje es una tarea; varias líneas, varias tareas. Con `#etiqueta` va a esa lista (`leche #compra` → Compra); sin ella, a General.
+- `-leche`, `/hecho leche` o responder «hecho» (u «ok», «listo», ✅…) al mensaje de la tarea la tachan. Sin tildes ni mayúsculas, y vale una parte del nombre si solo hay una que encaje.
+- `/lista` contesta con las pendientes; `/ayuda`, con esto mismo.
+- El bot reacciona con ✍ al apuntar y 👌 al tachar. Solo atiende al grupo configurado.
+
+**En el marco:** la pantalla Tareas (en la barra lateral, solo con el bot configurado), una columna por lista. Una pulsación larga tacha la tarea y el bot lo cuenta en el grupo. En Ajustes, el grupo aparece con los calendarios, «Al día» o «No responde».
+
+**Dónde viven las tareas:** solo en el marco (`files/cache/tasks.json`), con la posición de lectura del grupo en el mismo fichero, así que un corte de luz no repite ni pierde mensajes. Telegram guarda los mensajes sin leer 24 horas: con el marco apagado más de un día, se pierden los de ese tiempo. Si el marco se estropea, se pierden las tareas (se rehacen con `/lista` de memoria… o volviendo a escribirlas).
+
+**Privacidad:** el token controla el bot; está en tu PC (`telegram.local`) y en las preferencias de la app. Si se filtra, @BotFather → `/revoke` y repetir `telegram.sh` con el nuevo.
+
 ## Actualizar por Wi-Fi
 
 Tras la primera instalación por USB, `adbd` escucha también en TCP 5555. Todos los scripts (`install.sh`, `boot/install.sh`, `frame/backup.sh`) funcionan igual por Wi-Fi, y las copias siguen guardándose por número de serie (`ro.serialno`), no por IP.

@@ -9,6 +9,7 @@ docs/photo-frame-dashboard/
 
 scripts/config.local
 scripts/calendars.local
+scripts/telegram.local
 
 # Entorno de demo (scripts/demo.sh)
 .demo/

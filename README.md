@@ -1,10 +1,10 @@
 # Planify - Dashboard 🖼️
 
-Un marco de fotos digital de unos 80 € convertido en la pantalla de la familia: hora, tiempo, eventos y rutinas de un vistazo, colgado en la pared, sin la app del fabricante y sin suscripciones.
+Un marco de fotos digital de unos 80 € convertido en la pantalla de la familia: hora, tiempo, eventos, rutinas y tareas de un vistazo, colgado en la pared, sin la app del fabricante y sin suscripciones.
 
 **Este repositorio es, sobre todo, una guía para agentes** (Claude Code, Codex…) que quieran crear su propia versión: qué hay que hacer, en qué orden, con qué requisitos y qué se aprendió por el camino. Nosotros partimos de [wesbos/photo-frame-dashboard](https://github.com/wesbos/photo-frame-dashboard) de la misma forma.
 
-Los datos salen de **Google Calendar**: el marco lee la «dirección secreta en formato iCal» de uno o varios calendarios, así que se siguen creando y editando como siempre, desde el móvil (iPhone o Android) o desde la web, y no hace falta servidor propio, ni cuenta de Google en el marco, ni nada que caduque. El tiempo viene de [Open-Meteo](https://open-meteo.com/), sin clave.
+Los datos salen de **Google Calendar**: el marco lee la «dirección secreta en formato iCal» de uno o varios calendarios, así que se siguen creando y editando como siempre, desde el móvil (iPhone o Android) o desde la web, y no hace falta servidor propio, ni cuenta de Google en el marco, ni nada que caduque. El tiempo viene de [Open-Meteo](https://open-meteo.com/), sin clave. Las **tareas** se apuntan escribiendo en un grupo de **Telegram** con un bot: el marco lo lee y las enseña (opcional).
 
 El proyecto nació conectado a [Planify-APP](https://github.com/eusonlito/Planify-APP) y [Planify-Backend](https://github.com/eusonlito/Planify-Backend) (app solo para Android); esa versión sigue en el historial de git, antes del commit «Calendarios de Google (iCal) en lugar de Planify».
 
@@ -55,8 +55,11 @@ Dos páginas que se deslizan. La primera: el día de hoy por horas, de 00 a 23 c
   <img src="docs/images/weather-day.png" width="49%" alt="Tiempo: un día de la semana siguiente por horas" />
 </p>
 
+### Tareas
+Las tareas del grupo de Telegram de la familia, una columna por lista, con quién la apuntó y cuándo. En el grupo, cualquier mensaje es una tarea (`leche #compra` va a la lista Compra) y `-leche`, `/hecho leche` o responder «hecho» a su mensaje la tachan; `/lista` las enseña en el móvil. En el marco, una pulsación larga la tacha y el bot lo cuenta en el grupo. Solo aparece con el bot configurado (`scripts/telegram.sh`).
+
 ### Ajustes
-Ubicación del tiempo (búsqueda en Open-Meteo), horario de pantalla (entre semana y fin de semana, con el interruptor «Reloj nocturno»: si se desactiva, fuera de horario la pantalla se apaga del todo), **Calendarios** (cada uno con su color y si está al día o no responde, por ejemplo porque se ha restablecido su dirección en Google), brillo (un deslizador, con el porcentaje en el título, y «A» para el automático del sistema), Conexión (estado del Wi-Fi) y, en su propia caja, Wi-Fi, Ajustes de Android y apagar o reiniciar.
+Ubicación del tiempo (búsqueda en Open-Meteo), horario de pantalla (entre semana y fin de semana, con el interruptor «Reloj nocturno»: si se desactiva, fuera de horario la pantalla se apaga del todo), **Calendarios** (cada uno con su color y si está al día o no responde, por ejemplo porque se ha restablecido su dirección en Google) y el grupo de Telegram de las tareas, brillo (un deslizador, con el porcentaje en el título, y «A» para el automático del sistema), Conexión (estado del Wi-Fi) y, en su propia caja, Wi-Fi, Ajustes de Android y apagar o reiniciar.
 
 <img src="docs/images/settings.png" alt="Ajustes" />
 
@@ -184,7 +187,7 @@ La app de este repositorio (`android/`) es un dashboard nativo en Kotlin y Jetpa
 2. **Usarla con otra fuente iCal:** cualquier URL que sirva un `.ics` vale igual (iCloud con un calendario público, Nextcloud, Outlook…). Lo único propio de Google es dónde se saca la dirección.
 3. **Otra fuente de datos o tu propia app:** la capa de datos está en `data/` (`ical/IcsParser.kt` y `repository/EventsRepository.kt`); las pantallas solo ven `Content(events, sessions)`. Si haces otra app, respeta lo que pide el marco ([lo que aprendimos](#lo-que-aprendimos)): minSdk 29, sin librerías nativas (32 bits), diseño en los píxeles nativos y cuidado con las animaciones continuas y la memoria. Si es una web, wesbos usa una WebView en modo quiosco; aquí se descartó por memoria y calor.
 
-Las **rutinas** (lo que se repite cada semana: recoger a los niños, extraescolares…) salen de los calendarios marcados como `rutinas`: lo más cómodo es un calendario aparte en Google, con eventos que se repiten. Las **tareas** de Planify no tienen equivalente en iCal y no se muestran.
+Las **rutinas** (lo que se repite cada semana: recoger a los niños, extraescolares…) salen de los calendarios marcados como `rutinas`: lo más cómodo es un calendario aparte en Google, con eventos que se repiten. Las **tareas** no tienen equivalente en iCal (los Recordatorios de Apple no tienen API desde iOS 13): salen de un bot de Telegram, ver la fase 9.
 
 ### Fase 4: configura y compila
 
@@ -237,7 +240,8 @@ scripts/install.sh --build        # la primera vez, por USB
 
 1. **Wi-Fi:** en el dashboard, Ajustes (la rueda) → Wi-Fi; o "Ir a Ajustes" en la pantalla de espera, si aún no hay calendarios. Elige «Usar MAC del dispositivo» en las opciones avanzadas de la red, para poder reservarle la IP en el router. Si el router está en modo mixto WPA2/WPA3, añade la red a mano como WPA/WPA2-Personal ([docs/SETUP.md, Primer uso](docs/SETUP.md#primer-uso)).
 2. **Calendarios:** en el PC, `cp scripts/calendars.example scripts/calendars.local` (está en `.gitignore`), una línea por calendario (`nombre | #color | dirección secreta | rutinas`) y `scripts/calendars.sh` con el marco conectado. Los escribe en la app por ADB y la reinicia; para cambiarlos, se edita el fichero y se repite. Nunca subas ese fichero ni pegues las direcciones en ningún sitio.
-3. **Ajustes del dashboard:** ubicación del tiempo, horario de pantalla y brillo. En Ajustes → Calendarios, cada uno debe decir «Al día».
+3. **Tareas (opcional):** un bot de Telegram en el grupo de la familia. `cp scripts/telegram.example scripts/telegram.local`, sigue sus pasos (@BotFather, modo privacidad desactivado, el bot en el grupo) y `scripts/telegram.sh`. Detalle en [docs/SETUP.md, Tareas con Telegram](docs/SETUP.md#tareas-con-telegram).
+4. **Ajustes del dashboard:** ubicación del tiempo, horario de pantalla y brillo. En Ajustes → Calendarios, cada uno debe decir «Al día».
 
 ### Fase 10: verificación final
 
@@ -251,13 +255,14 @@ scripts/install.sh --build        # la primera vez, por USB
 
 ## Qué hace la app
 
-Barra lateral con Hoy, Calendario, Tiempo, sincronizar, Ajustes y apagar pantalla. Tras 2 minutos sin tocar, vuelve a Hoy.
+Barra lateral con Hoy, Calendario, Tiempo, Tareas (con el bot configurado), sincronizar, Ajustes y apagar pantalla. Tras 2 minutos sin tocar, vuelve a Hoy.
 
 | Pantalla | Contenido |
 |---|---|
 | **Hoy** | Reloj de paletas (split-flap), el siguiente evento o rutina con cuenta atrás (si es de hoy o de mañana), el tiempo (ahora, el día de hoy de 00 a 23 h con la hora actual marcada y los próximos días, que se deslizan), calendario del mes, próximos eventos y rutinas de hoy |
 | **Calendario** | Dos semanas en dos filas, deslizando en vertical: el tiempo de cada día, los eventos y una caja con las rutinas |
 | **Tiempo** | Hoy de 00 a 23 h y 7 días; la semana siguiente en gráfica; tocar un día abre sus 24 horas con su cabecera |
+| **Tareas** | Las del grupo de Telegram, una columna por lista; pulsación larga para tacharlas |
 | **Reloj nocturno** | Fuera de horario, o al pulsar la luna: hora, fecha y tiempo sobre negro con el brillo al mínimo; tocarlo enseña el dashboard |
 | **Ajustes** | Ubicación del tiempo (Open-Meteo), horario de pantalla (con reloj nocturno o apagado), estado de cada calendario, brillo (deslizador o automático), Conexión (estado del Wi-Fi) y los botones de Wi-Fi, Ajustes de Android y apagar o reiniciar |
 
@@ -312,6 +317,7 @@ Muchos marcos parecidos usan el mismo SoC A133 o placas Rockchip, pero cambian e
 android/              app Android (Kotlin, Jetpack Compose, minSdk 29)
 scripts/install.sh    fases 2 y 4 a 8; se configura con scripts/config.local (config.example)
 scripts/calendars.sh  calendarios de la app, desde scripts/calendars.local (calendars.example)
+scripts/telegram.sh   bot de las tareas, desde scripts/telegram.local (telegram.example)
 scripts/demo.sh       emulador con calendarios de demostración (scripts/demo/calendars.py)
 scripts/frame/        backup.sh (eMMC), planify-frame.sh y .rc (cortafuegos y wakelock al arrancar)
 scripts/boot/         logo del bootloader y animación de arranque (boot.html → make.sh → install.sh)

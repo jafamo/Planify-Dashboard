@@ -1,0 +1,13 @@
+# Bot de Telegram de las tareas. Cópialo como scripts/telegram.local (git lo ignora), rellénalo y lanza
+# scripts/telegram.sh con el marco conectado (por USB, o con ANDROID_SERIAL=<ip>:5555 por Wi-Fi).
+#
+# 1. En Telegram, habla con @BotFather: /newbot (nombre y usuario del bot). Te da el token: ponlo en TOKEN.
+# 2. En @BotFather: /setprivacy → el bot → Disable. Si no, en el grupo solo vería los mensajes que empiezan por "/".
+# 3. Añade el bot al grupo de la familia y escribe cualquier cosa en el grupo.
+# 4. Lanza scripts/telegram.sh sin CHAT_ID: te enseña los grupos donde está el bot, con su identificador.
+#    Pon el del grupo en CHAT_ID (empieza por "-") y vuelve a lanzarlo.
+#
+# El token es como una contraseña: quien lo tenga controla el bot. Si se filtra, @BotFather → /revoke lo cambia.
+
+TOKEN=
+CHAT_ID=
