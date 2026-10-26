@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.lito.planify.dashboard.data.repository.TelegramConfig
 
 /** Horario de pantalla en minutos desde medianoche, por tipo de día. */
 data class Schedule(
@@ -20,8 +21,9 @@ data class Schedule(
 )
 
 /**
- * Calendarios y ajustes del dispositivo (SharedPreferences). Los datos descargados van en DiskCache.
- * Los calendarios los escribe `scripts/calendars.sh` por ADB (las URLs son largas para teclearlas en el marco).
+ * Calendarios, bot de tareas y ajustes del dispositivo (SharedPreferences). Los datos descargados van en DiskCache.
+ * Los calendarios y el bot los escriben `scripts/calendars.sh` y `scripts/telegram.sh` por ADB (las URLs y el token
+ * son largos para teclearlos en el marco).
  */
 class Store(context: Context) {
     private val prefs = context.getSharedPreferences("dashboard", Context.MODE_PRIVATE)
@@ -32,6 +34,10 @@ class Store(context: Context) {
             ?.let { runCatching { gson.fromJson<List<CalendarSource>>(it, CALENDARS) }.getOrNull() }
             .orEmpty()
             .filter { it.url.isNotBlank() }
+
+    /** El bot de Telegram de las tareas (scripts/telegram.sh); null sin configurar: no hay pantalla de Tareas. */
+    val telegram: TelegramConfig?
+        get() = read<TelegramConfig>("telegram")?.takeIf { it.token.isNotBlank() && it.chat_id != 0L }
 
     var location: Location?
         get() = read("location")

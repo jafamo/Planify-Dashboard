@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
@@ -57,6 +58,7 @@ enum class Page(val label: String, val icon: ImageVector) {
     Today("Hoy", Icons.Outlined.Home),
     Calendar("Calendario", Icons.Outlined.CalendarMonth),
     Weather("Tiempo", Icons.Outlined.Thermostat),
+    Tasks("Tareas", Icons.Outlined.Checklist),
     Settings("Ajustes", Icons.Outlined.Settings)
 }
 
@@ -78,6 +80,7 @@ fun DashboardApp(
     state: UiState,
     actions: DashboardActions,
     onSync: () -> Unit,
+    onCompleteTask: (Long) -> Unit,
     settings: SettingsCallbacks,
     onPeek: () -> Unit
 ) {
@@ -124,6 +127,7 @@ fun DashboardApp(
                     Page.Today -> TodayScreen(state, lastTouch)
                     Page.Calendar -> CalendarScreen(state)
                     Page.Weather -> WeatherScreen(state)
+                    Page.Tasks -> TasksScreen(state, onCompleteTask)
                     Page.Settings -> SettingsScreen(state, actions, settings)
                 }
             }
@@ -143,7 +147,9 @@ private fun Rail(current: Page, state: UiState, onSelect: (Page) -> Unit, onSync
     ) {
         // Todos los botones juntos arriba y el reloj abajo del todo
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Page.entries.filter { it != Page.Settings }.forEach { page -> RailItem(page.label, page.icon, page == current) { onSelect(page) } }
+            // Tareas, solo con el bot de Telegram configurado
+            Page.entries.filter { it != Page.Settings && (it != Page.Tasks || state.tasks != null) }
+                .forEach { page -> RailItem(page.label, page.icon, page == current) { onSelect(page) } }
             SyncItem(state.syncing, onSync)
             RailItem(Page.Settings.label, Page.Settings.icon, current == Page.Settings) { onSelect(Page.Settings) }
             RailItem("Apagar pantalla", Icons.Outlined.Bedtime, false, onClick = onSleep)

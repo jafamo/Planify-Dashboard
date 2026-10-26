@@ -19,6 +19,11 @@ import com.lito.planify.dashboard.data.Store
 import com.lito.planify.dashboard.data.cache.DiskCache
 import com.lito.planify.dashboard.data.HttpError
 import com.lito.planify.dashboard.data.repository.EventsRepository
+import com.lito.planify.dashboard.data.repository.TasksRepository
+import com.lito.planify.dashboard.data.repository.TasksStatus
+import com.lito.planify.dashboard.data.tasks.Task
+import com.lito.planify.dashboard.data.telegram.TelegramApi
+import kotlinx.coroutines.CancellationException
 import com.lito.planify.dashboard.data.repository.WeatherRepository
 import com.lito.planify.dashboard.power.ScreenSchedule
 import kotlinx.coroutines.delay
@@ -35,6 +40,9 @@ data class UiState(
     val calendars: List<CalendarSource> = emptyList(),
     /** Cuándo se descargó cada calendario y si falla, para Ajustes. */
     val calendarStatus: List<CalendarStatus> = emptyList(),
+    /** Tareas pendientes del grupo de Telegram; null sin bot configurado (no hay pantalla de Tareas). */
+    val tasks: List<Task>? = null,
+    val tasksStatus: TasksStatus? = null,
     val now: LocalDateTime = LocalDateTime.now(),
     /** false mientras el reloj no se haya sincronizado (el RTC vuelve a la fecha de fábrica). */
     val clockValid: Boolean = false,
@@ -70,6 +78,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val cache = DiskCache(File(application.filesDir, "cache"))
     private val eventsRepository = EventsRepository(api, cache).apply { setSources(store.calendars) }
     private val weatherRepository = WeatherRepository(api, cache)
+    private val tasksRepository = store.telegram?.let { TasksRepository(TelegramApi.client, cache, it) }
     private val clock = ReferenceClock(BuildConfig.BUILD_TIME, { store.lastValidTime }, { store.lastValidTime = it })
 
     private val _state = MutableStateFlow(
@@ -77,6 +86,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             UiState(
                 calendars = store.calendars,
                 calendarStatus = eventsRepository.status.value,
+                tasks = tasksRepository?.tasks?.value?.tasks,
+                tasksStatus = tasksRepository?.status?.value,
                 now = time.now,
                 clockValid = time.valid,
                 content = eventsRepository.content.value,
@@ -102,6 +113,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch { eventsRepository.content.collect { c -> _state.update { it.copy(content = c) } } }
         viewModelScope.launch { eventsRepository.status.collect { s -> _state.update { it.copy(calendarStatus = s) } } }
         viewModelScope.launch { weatherRepository.forecast.collect { f -> _state.update { it.copy(forecast = f?.value) } } }
+        tasksRepository?.let { repository ->
+            viewModelScope.launch { repository.tasks.collect { t -> _state.update { it.copy(tasks = t.tasks) } } }
+            viewModelScope.launch { repository.status.collect { s -> _state.update { it.copy(tasksStatus = s) } } }
+            viewModelScope.launch { pollTasks(repository) }
+        }
         setConnected(connectivity.getNetworkCapabilities(connectivity.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
         connectivity.registerDefaultNetworkCallback(networkCallback)
     }
@@ -115,6 +131,32 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val was = _state.value.connected
         _state.update { it.copy(connected = connected) }
         if (connected && !was) refreshNow()
+    }
+
+    /**
+     * Lee el grupo de Telegram sin parar, también con la pantalla apagada: Telegram solo guarda 24 h los mensajes que
+     * nadie ha leído. Cada espera larga dura hasta 50 s; si falla (sin red, otro getUpdates con el mismo token…), se
+     * espera cada vez más, hasta 5 minutos.
+     */
+    private suspend fun pollTasks(repository: TasksRepository) {
+        var backoff = TasksRepository.MIN_BACKOFF_MS
+        while (true) {
+            try {
+                repository.poll()
+                backoff = TasksRepository.MIN_BACKOFF_MS
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                delay(backoff)
+                backoff = (backoff * 2).coerceAtMost(TasksRepository.MAX_BACKOFF_MS)
+            }
+        }
+    }
+
+    /** Pulsación larga en una tarea del marco: hecha, y se avisa en el grupo. */
+    fun completeTask(id: Long) {
+        val repository = tasksRepository ?: return
+        viewModelScope.launch { runCatching { repository.complete(id) } }
     }
 
     /** Bucle mientras la actividad está visible: reloj cada minuto; contenido y tiempo cuando caducan (5 y 30 min). */

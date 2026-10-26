@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Icon
@@ -93,7 +94,7 @@ fun SettingsScreen(state: UiState, actions: DashboardActions, callbacks: Setting
             }
             Panel(Modifier.weight(1f).fillMaxHeight()) {
                 ScheduleSection(state.schedule, callbacks.onSchedule)
-                Section("Calendarios") { CalendarsCard(state) }
+                Section(if (state.tasksStatus != null) "Calendarios y tareas" else "Calendarios") { CalendarsCard(state) }
             }
             // La columna de la derecha, en dos cajas: brillo y conexión arriba, y los botones abajo
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(28.dp)) {
@@ -266,7 +267,8 @@ private fun LevelSlider(value: Float, enabled: Boolean, modifier: Modifier = Mod
 
 /** Red Wi-Fi conectada, con una barra de calidad según la señal. Se actualiza cada 5 s mientras se ve. */
 /**
- * Los calendarios configurados (scripts/calendars.sh), cada uno con su color y cuándo se descargó. Si uno falla (por
+ * Los calendarios configurados (scripts/calendars.sh), cada uno con su color y cuándo se descargó, y el grupo de
+ * Telegram de las tareas (scripts/telegram.sh). Si uno falla (por
  * ejemplo, porque se ha restablecido su dirección secreta en Google), se sigue viendo lo último que se descargó.
  */
 @Composable
@@ -292,6 +294,25 @@ private fun CalendarsCard(state: UiState) {
                     status.failing -> "No responde" to Palette.Accent
                     status.fetchedAt == null -> "Descargando…" to Palette.InkMuted
                     else -> fetchedLabel(status.fetchedAt) to Palette.Online
+                }
+                Text(label, style = Type.Small.copy(color = color, fontWeight = FontWeight.SemiBold), maxLines = 1)
+            }
+        }
+        // El bot de las tareas: el nombre del grupo y si Telegram contesta (lee cada 50 s como mucho)
+        state.tasksStatus?.let { status ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Checklist, contentDescription = null, tint = Palette.Rain, modifier = Modifier.size(24.dp))
+                Text(
+                    status.group ?: "Telegram",
+                    style = Type.Body.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 12.dp, end = 10.dp).weight(1f)
+                )
+                val (label, color) = when {
+                    status.failing -> "No responde" to Palette.Accent
+                    status.lastOk == null -> "Conectando…" to Palette.InkMuted
+                    else -> fetchedLabel(status.lastOk) to Palette.Online
                 }
                 Text(label, style = Type.Small.copy(color = color, fontWeight = FontWeight.SemiBold), maxLines = 1)
             }
